@@ -15,6 +15,7 @@
 .nav {
     display: flex;
     gap: 20px;
+    align-items: center; /* Alinea los elementos en la barra de navegación */
 }
 
 .nav a {
@@ -38,6 +39,12 @@
     cursor: pointer;
 }
 
+.date-time {
+    color: white;
+    font-size: 14px; /* Tamaño de la fuente para la fecha y hora */
+    margin-left: auto; /* Empuja la fecha y hora hacia la derecha */
+}
+
 @media (max-width: 768px) {
     .nav {
         display: none;
@@ -51,5 +58,10 @@
 
     .menu-toggle {
         display: block;
+    }
+
+    .date-time {
+        margin-left: 0; /* Resetea el margen izquierdo en pantallas pequeñas */
+        margin-top: 10px;
     }
 }

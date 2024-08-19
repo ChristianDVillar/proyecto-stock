@@ -22,7 +22,6 @@ const NewInventory = () => {
         reader.onload = function(event) {
             setImageSrc(event.target.result);
 
-            // Procesar la imagen cuando esté completamente cargada
             const img = new Image();
             img.src = event.target.result;
             img.onload = function() {
@@ -44,29 +43,22 @@ const NewInventory = () => {
                     },
                     locate: true
                 }, function(result) {
-                    console.log('Quagga processing result:', result);
                     if (result && result.codeResult) {
-                        console.log('Barcode detected:', result.codeResult.code);
                         setScannedBarcode(result.codeResult.code);
                     } else {
-                        console.log('No barcode detected');
                         setScannedBarcode('');
                         alert("No barcode detected. Please try again.");
                     }
                 });
-
-                console.log('Quagga decodeSingle function called.');
             };
 
             img.onerror = function() {
-                console.error('Error loading image');
                 setScannedBarcode('');
                 alert("Error loading image. Please try again.");
             };
         };
 
         reader.onerror = function() {
-            console.error('Error reading file');
             setScannedBarcode('');
             alert("Error reading file. Please try again.");
         };
@@ -83,13 +75,15 @@ const NewInventory = () => {
     };
 
     const handleSave = () => {
+        const currentTime = new Date();
         const newRow = {
-            id: isEditing ? editRowId : new Date().getTime(),
+            id: isEditing ? editRowId : currentTime.getTime(),
             barcode: scannedBarcode || "S/N",
             inventario: formData.inventario || "S/N",
             dispositivo: formData.dispositivo || "S/N",
             modelo: formData.modelo || "S/N",
-            cantidad: formData.cantidad || "S/N"
+            cantidad: formData.cantidad || "S/N",
+            dateAdded: `${currentTime.toLocaleDateString()} ${currentTime.toLocaleTimeString()}`
         };
 
         if (isEditing) {
@@ -100,7 +94,6 @@ const NewInventory = () => {
             setRows(prevRows => [...prevRows, newRow]);
         }
 
-        // Limpiar los campos después de guardar
         setScannedBarcode('');
         setFormData({
             inventario: '',
@@ -108,7 +101,7 @@ const NewInventory = () => {
             modelo: '',
             cantidad: ''
         });
-        setImageSrc(''); // Limpia la imagen cargada
+        setImageSrc('');
     };
 
     const handleDelete = (id) => {
@@ -153,6 +146,7 @@ const NewInventory = () => {
                         <th>Dispositivo</th>
                         <th>Modelo</th>
                         <th>Cantidad</th>
+                        <th>Fecha y Hora</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -164,6 +158,7 @@ const NewInventory = () => {
                             <td>{row.dispositivo}</td>
                             <td>{row.modelo}</td>
                             <td>{row.cantidad}</td>
+                            <td>{row.dateAdded}</td>
                             <td>
                                 <FaPencilAlt onClick={() => handleEdit(row.id)} style={{ cursor: 'pointer', marginRight: '10px' }} />
                                 <FaTrash onClick={() => handleDelete(row.id)} style={{ cursor: 'pointer' }} />
