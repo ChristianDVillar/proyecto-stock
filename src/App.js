@@ -12,7 +12,7 @@ function App() {
     <div>
       <Header />
       <NewInventory />
-      {/* <ConsultInventory /> */}
+      <ConsultInventory />
       <Footer />
     </div>
   );
