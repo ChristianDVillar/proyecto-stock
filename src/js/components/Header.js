@@ -1,39 +1,44 @@
 import React, { useState, useEffect } from 'react';
+import authStore from '../../stores/AuthStore.js'; // Asegúrate de que la ruta sea correcta
 import '../../styles/Header.css';
 
 const Header = () => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [currentTime, setCurrentTime] = useState(new Date());
-
-    const toggleMenu = () => {
-        setIsOpen(!isOpen);
-    };
+    const [userName, setUserName] = useState(authStore.getUserName());
 
     useEffect(() => {
-        const timer = setInterval(() => {
-            setCurrentTime(new Date());
-        }, 1000);
+        const handleAuthChange = () => {
+            setUserName(authStore.getUserName());
+        };
 
-        return () => clearInterval(timer);
+        authStore.on('change', handleAuthChange);
+
+        return () => {
+            authStore.removeListener('change', handleAuthChange);
+        };
     }, []);
 
-    const formattedTime = currentTime.toLocaleTimeString();
-    const formattedDate = currentTime.toLocaleDateString();
+    const handleLogout = () => {
+        authStore.logout(); // Cerramos la sesión
+    };
 
     return (
         <header className="header">
-            <div className="logo">
-                Control de Stock
-            </div>
-            <nav className={`nav ${isOpen ? 'open' : ''}`}>
+            <div className="logo">Control de Stock</div>
+            <nav className="nav">
                 <a href="#nuevo-inventario">Nuevo Inventario</a>
                 <a href="#consultar">Consultar Inventario</a>
                 <a href="mailto:christianvillar@live.com.ar" id="contact-link">Contacto</a>
-                <div className="date-time">
-                    {formattedDate} {formattedTime}
-                </div>
+                <div className="date-time">{new Date().toLocaleString()}</div>
+                {userName && (
+                    <div className="user-menu">
+                        <span className="user-name">
+                            {userName}
+                        </span>
+                        <button onClick={handleLogout}>Cerrar Sesión</button>
+                    </div>
+                )}
             </nav>
-            <button className="menu-toggle" onClick={toggleMenu}>
+            <button className="menu-toggle" onClick={() => { /* Lógica para menú móvil */ }}>
                 ☰
             </button>
         </header>
