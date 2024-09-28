@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import authStore from '../../stores/AuthStore.js'; // Asegúrate de que la ruta sea correcta
-import '../../styles/Header.css';
+import authStore from '../../stores/AuthStore'; // Asegúrate de que la ruta sea correcta
 
 const Header = () => {
     const [userName, setUserName] = useState(authStore.getUserName());
+    const [showDropdown, setShowDropdown] = useState(false);
 
     useEffect(() => {
         const handleAuthChange = () => {
@@ -18,7 +18,8 @@ const Header = () => {
     }, []);
 
     const handleLogout = () => {
-        authStore.logout(); // Cerramos la sesión
+        authStore.logout();
+        setShowDropdown(false); // Cerrar el dropdown al cerrar sesión
     };
 
     return (
@@ -31,19 +32,26 @@ const Header = () => {
                 <div className="date-time">{new Date().toLocaleString()}</div>
                 {userName && (
                     <div className="user-menu">
-                        <span className="user-name">
-                            {userName}
-                        </span>
-                        <button onClick={handleLogout}>Cerrar Sesión</button>
-                    </div>
+                    <span 
+                        className="user-name" 
+                        onClick={() => setShowDropdown(!showDropdown)}
+                        style={{ cursor: 'pointer' }}
+                    >
+                        {userName}
+                    </span>
+                    {showDropdown && (
+                        <div className="dropdown-menu">
+                            <ul>
+                                <li><a onClick={handleLogout}>Cerrar Sesión</a></li>
+                                <li><a href="#profile">Perfil</a></li>
+                            </ul>
+                        </div>
+                    )}
+                </div>
                 )}
             </nav>
-            <button className="menu-toggle" onClick={() => { /* Lógica para menú móvil */ }}>
-                ☰
-            </button>
         </header>
     );
 };
 
 export default Header;
-

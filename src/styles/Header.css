@@ -15,7 +15,7 @@
 .nav {
     display: flex;
     gap: 20px;
-    align-items: center; /* Alinea los elementos en la barra de navegación */
+    align-items: center;
 }
 
 .nav a {
@@ -41,8 +41,61 @@
 
 .date-time {
     color: white;
-    font-size: 14px; /* Tamaño de la fuente para la fecha y hora */
-    margin-left: auto; /* Empuja la fecha y hora hacia la derecha */
+    font-size: 14px;
+    margin-left: auto;
+}
+
+.user-menu {
+    position: relative;
+    display: inline-block;
+}
+
+.user-name {
+    cursor: pointer;
+    padding: 8px 16px;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+.user-name:hover {
+    background-color: #575757;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: white;
+    color: black;
+    border: 1px solid #ccc;
+    box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+    padding: 10px;
+    z-index: 1000; /* Asegura que el dropdown esté por encima de otros elementos */
+    min-width: 160px;
+    max-width: 300px; /* Limita el ancho máximo del dropdown */
+    width: auto; /* Asegura que el dropdown se ajuste a su contenido */
+    border-radius: 4px;
+    list-style: none;
+    margin: 0;
+}
+
+.dropdown-menu li {
+    padding: 8px 12px;
+}
+
+.dropdown-menu li a {
+    color: black;
+    text-decoration: none;
+    display: block;
+    width: 100%;
+}
+
+.dropdown-menu li a:hover {
+    background-color: #f1f1f1;
+}
+
+.user-menu.open .dropdown-menu {
+    display: block;
 }
 
 @media (max-width: 768px) {
@@ -61,7 +114,13 @@
     }
 
     .date-time {
-        margin-left: 0; /* Resetea el margen izquierdo en pantallas pequeñas */
+        margin-left: 0;
         margin-top: 10px;
     }
+
+    .dropdown-menu {
+        min-width: 1000px; /* Ajusta el ancho del menú desplegable en pantallas más pequeñas */
+        max-width: 2000px; /* Limita el ancho máximo en pantallas pequeñas */
+    }
 }
+
