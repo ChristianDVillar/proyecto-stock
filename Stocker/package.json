@@ -1,0 +1,1 @@
+{"name":"Stocker","version":"0.0.1","private":true,"scripts":{"start":"node node_modules/react-native/local-cli/cli.js start"},"dependencies":{"quagga":"^0.12.1","react-icons":"^5.5.0","react-native":"0.72.0","Stocker":"file:","uuid":"^11.1.0"},"devDependencies":{"@react-native-community/cli":"^18.0.0"}}
