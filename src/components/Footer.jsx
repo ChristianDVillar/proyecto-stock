@@ -1,6 +1,6 @@
-// src/js/component/Footer.js
+// src/components/Footer.jsx
 import React from 'react';
-import '../../styles/Footer.css';
+import '../assets/styles/Footer.css';
 const Footer = () => {
     return (
         <footer className="footer">

@@ -1,0 +1,35 @@
+/* Gengar Theme Colors */
+:root {
+  /* Colores principales */
+  --color-shadow: #2E2E2E;      /* Negro profundo - Color principal para fondos oscuros */
+  --color-ghost: #D3D3D3;       /* Gris plateado - Color para elementos claros */
+  --color-poison: #800080;      /* Púrpura fuerte - Color de acento principal */
+  --color-poison-light: #9370DB; /* Púrpura más claro - Color de acento secundario */
+  --color-eyes: #FF0000;        /* Rojo brillante - Color para elementos de atención */
+  --color-eyes-dark: #DC143C;   /* Rojo oscuro - Color para hover/active */
+  
+  /* Sombras y efectos */
+  --shadow-normal: 0 4px 6px rgba(46, 46, 46, 0.1);
+  --shadow-hover: 0 6px 12px rgba(128, 0, 128, 0.2);
+  --glow-effect: 0 0 15px rgba(147, 112, 219, 0.3);
+  
+  /* Gradientes */
+  --gradient-dark: linear-gradient(135deg, var(--color-shadow) 0%, var(--color-poison) 100%);
+  --gradient-light: linear-gradient(135deg, var(--color-ghost) 0%, var(--color-poison-light) 100%);
+
+  /* Espaciado */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+
+  /* Bordes */
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+
+  /* Tipografía */
+  --font-family-base: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-family-code: source-code-pro, Menlo, Monaco, Consolas, monospace;
+} 

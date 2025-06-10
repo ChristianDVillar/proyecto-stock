@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import authStore from '../../stores/AuthStore';
-import '../../styles/Login.css';
+import authStore from '../services/AuthStore';
+import '../assets/styles/Login.css';
 
 const Login = () => {
     const [isLogin, setIsLogin] = useState(true);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import Quagga from '@ericblade/quagga2';
+import { BrowserMultiFormatReader } from '@zxing/browser';
 import { FaTrash, FaPencilAlt, FaCamera, FaBarcode, FaStop } from 'react-icons/fa';
-import '../../styles/NewInventory.css';
+import '../assets/styles/NewInventory.css';
 import DeviceTypeSelector from './DeviceTypeSelector';
 
 const NewInventory = () => {
@@ -9,6 +9,7 @@ const NewInventory = () => {
     const [imageSrc, setImageSrc] = useState('');
     const [isScanning, setIsScanning] = useState(false);
     const videoRef = useRef(null);
+    const codeReaderRef = useRef(null);
     const [formData, setFormData] = useState({
         inventario: '',
         dispositivo: '',
@@ -21,79 +22,44 @@ const NewInventory = () => {
     const [editRowId, setEditRowId] = useState(null);
 
     useEffect(() => {
+        codeReaderRef.current = new BrowserMultiFormatReader();
         return () => {
             if (isScanning) {
                 stopScanning();
             }
+            if (codeReaderRef.current) {
+                codeReaderRef.current.reset();
+            }
         };
-    }, [isScanning]);
+    }, []);
 
     const startScanning = async () => {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { 
-                    facingMode: "environment",
-                    width: { min: 640, ideal: 1280, max: 1920 },
-                    height: { min: 480, ideal: 720, max: 1080 }
-                }
-            });
-
             if (!videoRef.current) {
                 console.error('Video element not found');
                 return;
             }
 
-            videoRef.current.srcObject = stream;
-            await new Promise((resolve) => {
-                videoRef.current.onloadedmetadata = () => {
-                    resolve();
-                };
-            });
-
-            const config = {
-                inputStream: {
-                    type: "LiveStream",
-                    constraints: {
-                        ...stream.getVideoTracks()[0].getSettings()
-                    },
-                    area: {
-                        top: "0%",
-                        right: "0%",
-                        left: "0%",
-                        bottom: "0%"
-                    },
-                    target: videoRef.current
-                },
-                decoder: {
-                    readers: [
-                        "ean_reader",
-                        "ean_8_reader",
-                        "code_128_reader",
-                        "code_39_reader",
-                        "upc_reader",
-                        "upc_e_reader"
-                    ]
-                },
-                locate: true
+            const constraints = {
+                video: { 
+                    facingMode: "environment",
+                    width: { min: 640, ideal: 1280, max: 1920 },
+                    height: { min: 480, ideal: 720, max: 1080 }
+                }
             };
 
-            try {
-                await Quagga.init(config);
-                Quagga.start();
-                setIsScanning(true);
+            await codeReaderRef.current.decodeFromConstraints(constraints, videoRef.current, (result, error) => {
+                if (result) {
+                    setScannedBarcode(result.getText());
+                    const audio = new Audio('/assets/beep.mp3');
+                    audio.play().catch(e => console.log('Audio play failed:', e));
+                }
+                if (error) {
+                    console.log(error);
+                }
+            });
 
-                Quagga.onDetected((result) => {
-                    if (result.codeResult) {
-                        setScannedBarcode(result.codeResult.code);
-                        const audio = new Audio('/assets/beep.mp3');
-                        audio.play().catch(e => console.log('Audio play failed:', e));
-                    }
-                });
-
-            } catch (err) {
-                console.error("Error starting Quagga:", err);
-                alert('Error al iniciar el escáner: ' + err.message);
-            }
+            setIsScanning(true);
 
         } catch (error) {
             console.error('Error accessing camera:', error);
@@ -101,24 +67,18 @@ const NewInventory = () => {
         }
     };
 
-    const stopScanning = () => {
+    const stopScanning = async () => {
         if (isScanning) {
             try {
-                Quagga.stop();
+                await codeReaderRef.current.reset();
+                setIsScanning(false);
             } catch (err) {
-                console.error("Error stopping Quagga:", err);
-            }
-            setIsScanning(false);
-            
-            if (videoRef.current && videoRef.current.srcObject) {
-                const tracks = videoRef.current.srcObject.getTracks();
-                tracks.forEach(track => track.stop());
-                videoRef.current.srcObject = null;
+                console.error("Error stopping scanner:", err);
             }
         }
     };
 
-    const handleImageChange = (e) => {
+    const handleImageChange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
@@ -127,63 +87,22 @@ const NewInventory = () => {
             setImageSrc(event.target.result);
 
             try {
-                const result = await Quagga.decodeSingle({
-                    decoder: {
-                        readers: [
-                            "ean_reader",
-                            "ean_8_reader",
-                            "code_128_reader",
-                            "code_39_reader",
-                            "upc_reader",
-                            "upc_e_reader",
-                            "codabar_reader",
-                            "i2of5_reader"
-                        ],
-                        multiple: false
-                    },
-                    locate: true,
-                    src: event.target.result,
-                    numOfWorkers: navigator.hardwareConcurrency || 4,
-                    inputStream: {
-                        size: 1600,
-                        singleChannel: false
-                    },
-                    locator: {
-                        patchSize: "large",
-                        halfSample: false
-                    },
-                    debug: {
-                        showCanvas: true,
-                        showPatches: true,
-                        showFoundPatches: true,
-                        showSkeleton: true,
-                        showLabels: true,
-                        showPatchLabels: true,
-                        showRemainingPatchLabels: true,
-                        boxFromPatches: {
-                            showTransformed: true,
-                            showTransformedBox: true,
-                            showBB: true
-                        }
-                    }
+                const img = new Image();
+                img.src = event.target.result;
+                await new Promise((resolve) => {
+                    img.onload = resolve;
                 });
 
-                if (result && result.codeResult) {
-                    console.log("Código detectado:", result.codeResult.code);
-                    setScannedBarcode(result.codeResult.code);
-                    
-                    // Reproducir sonido de éxito
+                const result = await codeReaderRef.current.decodeFromImage(img);
+                if (result) {
+                    setScannedBarcode(result.getText());
                     const audio = new Audio('/assets/beep.mp3');
                     audio.play().catch(e => console.log('Audio play failed:', e));
-                } else {
-                    console.log("No se detectó código de barras");
-                    setScannedBarcode('');
-                    alert("No se detectó ningún código de barras. Por favor, intente de nuevo con una imagen más clara.");
                 }
             } catch (error) {
                 console.error('Error al procesar la imagen:', error);
                 setScannedBarcode('');
-                alert("Error al procesar la imagen. Por favor, asegúrese de que la imagen sea clara y contenga un código de barras válido.");
+                alert("No se detectó ningún código de barras. Por favor, intente de nuevo con una imagen más clara.");
             }
         };
 

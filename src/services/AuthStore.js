@@ -1,9 +1,6 @@
 // AuthStore.js
-import { EventEmitter } from 'events';
-
-class AuthStore extends EventEmitter {
+class AuthStore {
     constructor() {
-        super();
         this._isInitialized = false;
         this._token = null;
         this._userName = '';
@@ -18,6 +15,27 @@ class AuthStore extends EventEmitter {
         
         // Verificar el token periódicamente
         this.startTokenVerification();
+    }
+
+    // Sistema de eventos personalizado
+    emit(eventName) {
+        const event = new CustomEvent('authstore-' + eventName, {
+            detail: {
+                isLoggedIn: this._isLoggedIn,
+                userName: this._userName,
+                userType: this._userType,
+                hasToken: !!this._token
+            }
+        });
+        window.dispatchEvent(event);
+    }
+
+    addEventListener(eventName, callback) {
+        window.addEventListener('authstore-' + eventName, callback);
+    }
+
+    removeEventListener(eventName, callback) {
+        window.removeEventListener('authstore-' + eventName, callback);
     }
 
     startTokenVerification() {
@@ -203,13 +221,7 @@ class AuthStore extends EventEmitter {
     }
 
     isAdmin() {
-        const isAdmin = this.isLoggedIn() && this._userType === 'admin';
-        console.log('Checking admin status:', {
-            isLoggedIn: this._isLoggedIn,
-            userType: this._userType,
-            isAdmin
-        });
-        return isAdmin;
+        return this._userType === 'admin';
     }
 
     getUserName() {
@@ -224,113 +236,59 @@ class AuthStore extends EventEmitter {
         return this._token;
     }
 
-    login(token, username, userType) {
-        console.log('Login attempt:', {
-            hasToken: !!token,
-            username,
-            userType
-        });
-
+    async login(token, username, userType) {
+        console.log('Setting login state:', { username, userType, hasToken: !!token });
+        
         if (!token || !username || !userType) {
-            console.error('Login failed: Missing required data');
-            return false;
+            console.error('Missing required login data');
+            throw new Error('Missing required login data');
         }
 
         try {
-            // Clean the token if it has Bearer prefix
-            const cleanToken = token.startsWith('Bearer ') ? token.replace('Bearer ', '') : token;
-            
-            // Clear any existing data first
-            localStorage.clear();
-            
-            // Update storage with new data
-            localStorage.setItem('jwt_token', cleanToken);
-            localStorage.setItem('username', username);
-            localStorage.setItem('user_type', userType);
-            
-            // Verify storage was updated
-            const storedToken = localStorage.getItem('jwt_token');
-            const storedUsername = localStorage.getItem('username');
-            const storedUserType = localStorage.getItem('user_type');
-            
-            if (!storedToken || !storedUsername || !storedUserType) {
-                throw new Error('Failed to store authentication data');
-            }
-            
-            if (storedToken !== cleanToken || storedUsername !== username || storedUserType !== userType) {
-                throw new Error('Stored authentication data mismatch');
-            }
-            
-            // Update instance state
-            this._token = cleanToken;
+            // Set instance state
+            this._token = token;
             this._userName = username;
             this._userType = userType;
             this._isLoggedIn = true;
-            this._isInitialized = true;
+            
+            // Set storage state
+            localStorage.setItem('jwt_token', token);
+            localStorage.setItem('username', username);
+            localStorage.setItem('user_type', userType);
             
             console.log('Login successful:', {
                 isLoggedIn: this._isLoggedIn,
                 userName: this._userName,
                 userType: this._userType,
-                hasToken: !!this._token,
-                isInitialized: this._isInitialized
+                hasToken: !!this._token
             });
             
             this.emit('change');
             return true;
         } catch (error) {
             console.error('Error during login:', error);
-            this.clearState();
-            return false;
+            await this.clearState(true);
+            throw error;
         }
     }
 
-    logout(redirect = true) {
-        console.log('Logout initiated');
-        this.clearState();
-        
-        if (redirect && !window.location.pathname.includes('login')) {
+    async logout(redirect = true) {
+        await this.clearState(true);
+        if (redirect) {
             window.location.href = '/login';
         }
     }
 
     validateAuth() {
-        const hasToken = !!this._token;
-        const hasUserData = !!this._userName && !!this._userType;
-        const isValid = hasToken && hasUserData && this._isLoggedIn && this._isInitialized;
-
-        console.log('Validating auth state:', {
-            hasToken,
-            hasUserData,
-            isLoggedIn: this._isLoggedIn,
-            isInitialized: this._isInitialized,
-            isValid,
-            token: this._token ? this._token.substring(0, 10) + '...' : null,
-            userName: this._userName,
-            userType: this._userType
-        });
-
-        return isValid;
+        if (!this.isLoggedIn()) {
+            this.logout();
+            return false;
+        }
+        return true;
     }
 }
 
+// Exportar una única instancia
 const authStore = new AuthStore();
-
-// Debug helper
-window.debugAuthStore = () => {
-    console.log('Auth Store Debug:', {
-        isLoggedIn: authStore.isLoggedIn(),
-        isAdmin: authStore.isAdmin(),
-        userName: authStore.getUserName(),
-        userType: authStore.getUserType(),
-        hasToken: !!authStore.getToken(),
-        localStorage: {
-            token: !!localStorage.getItem('jwt_token'),
-            username: localStorage.getItem('username'),
-            userType: localStorage.getItem('user_type')
-        }
-    });
-};
-
 export default authStore;
 

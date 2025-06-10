@@ -1,0 +1,154 @@
+@import './variables.css';
+
+/* Layout principal */
+.App {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--gradient-dark);
+}
+
+.App-main {
+  flex: 1;
+  padding: var(--spacing-xl);
+  background-color: rgba(46, 46, 46, 0.95);
+  box-shadow: var(--shadow-normal);
+  backdrop-filter: blur(10px);
+}
+
+/* Formulario de login */
+.login-container {
+  max-width: 400px;
+  margin: var(--spacing-xl) auto;
+  padding: var(--spacing-xl);
+  background: var(--gradient-light);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-normal);
+  transition: all 0.3s ease;
+}
+
+.login-container:hover {
+  box-shadow: var(--shadow-hover), var(--glow-effect);
+  transform: translateY(-2px);
+}
+
+.login-form h2 {
+  margin-bottom: var(--spacing-lg);
+  color: var(--color-shadow);
+  text-align: center;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.form-group {
+  margin-bottom: var(--spacing-lg);
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: var(--spacing-sm);
+  color: var(--color-shadow);
+  font-weight: 500;
+}
+
+.form-group input {
+  width: 100%;
+  padding: var(--spacing-md);
+  border: 2px solid var(--color-poison-light);
+  border-radius: var(--border-radius-md);
+  background-color: rgba(255, 255, 255, 0.9);
+  color: var(--color-shadow);
+  transition: all 0.3s ease;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--color-poison);
+  box-shadow: var(--glow-effect);
+  background-color: white;
+}
+
+.submit-button {
+  width: 100%;
+  padding: var(--spacing-md);
+  background: var(--color-poison);
+  color: var(--color-ghost);
+  border: none;
+  border-radius: var(--border-radius-md);
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.submit-button:hover {
+  background: var(--color-poison-light);
+  box-shadow: var(--glow-effect);
+  transform: translateY(-1px);
+}
+
+.submit-button:disabled {
+  background-color: var(--color-ghost);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.toggle-button {
+  width: 100%;
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: transparent;
+  color: var(--color-shadow);
+  border: 2px solid var(--color-poison);
+  border-radius: var(--border-radius-md);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.toggle-button:hover {
+  background: var(--color-poison);
+  color: var(--color-ghost);
+}
+
+.error-message {
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  background-color: rgba(255, 0, 0, 0.1);
+  border: 1px solid var(--color-eyes);
+  border-radius: var(--border-radius-md);
+  color: var(--color-eyes);
+  text-align: center;
+}
+
+/* Estado de carga */
+.loading {
+  animation: glow 2s infinite;
+  padding: var(--spacing-xl);
+  text-align: center;
+  background: var(--gradient-light);
+  border-radius: var(--border-radius-lg);
+  color: var(--color-shadow);
+}
+
+/* Animaciones */
+@keyframes glow {
+  0% { box-shadow: var(--shadow-normal); }
+  50% { box-shadow: var(--shadow-hover), var(--glow-effect); }
+  100% { box-shadow: var(--shadow-normal); }
+}
+
+/* Media queries */
+@media (max-width: 768px) {
+  .App-main {
+    padding: var(--spacing-md);
+  }
+
+  .login-container {
+    margin: var(--spacing-md);
+    padding: var(--spacing-lg);
+  }
+} 

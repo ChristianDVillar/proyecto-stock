@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaEdit, FaTrash, FaUserPlus } from 'react-icons/fa';
-import '../../styles/UserDashboard.css';
-import authStore from '../../stores/AuthStore';
+import '../assets/styles/UserDashboard.css';
+import authStore from '../services/AuthStore';
 
 const UserDashboard = () => {
     const [users, setUsers] = useState([]);

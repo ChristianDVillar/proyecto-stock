@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
-import Header from './js/components/Header';
-import NewInventory from './js/components/NewInventory';
-import ConsultInventory from './js/components/ConsultInventory';
-import UserDashboard from './js/components/UserDashboard';
-import Login from './js/components/Login';
-import Footer from './js/components/Footer';
-import authStore from './stores/AuthStore';
-import { getRouteByPath, canAccessRoute } from './js/routes';
+import Header from './components/Header';
+import NewInventory from './components/NewInventory';
+import ConsultInventory from './components/ConsultInventory';
+import UserDashboard from './components/UserDashboard';
+import Login from './components/Login';
+import Footer from './components/Footer';
+import authStore from './services/AuthStore';
+import { getRouteByPath, canAccessRoute } from './utils/routes';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -25,7 +25,7 @@ function App() {
         await authStore.initializeFromStorage();
         
         // Verificar el estado de autenticación
-        const loggedIn = authStore.validateAuth();
+        const loggedIn = authStore.isLoggedIn();
         const admin = authStore.isAdmin();
         const userType = authStore.getUserType();
         
@@ -73,9 +73,10 @@ function App() {
 
     initAuth();
 
-    const handleAuthChange = async () => {
+    const handleAuthChange = (event) => {
       try {
-        const loggedIn = authStore.validateAuth();
+        const { detail } = event;
+        const loggedIn = detail.isLoggedIn;
         const admin = authStore.isAdmin();
         
         console.log('Auth state changed:', {
@@ -101,7 +102,7 @@ function App() {
     };
 
     // Suscribirse a cambios en el estado de autenticación
-    authStore.on('change', handleAuthChange);
+    authStore.addEventListener('change', handleAuthChange);
     
     // Verificar el token periódicamente
     const tokenCheckInterval = setInterval(async () => {
@@ -117,7 +118,7 @@ function App() {
     }, 60000); // Verificar cada minuto
 
     return () => {
-      authStore.removeListener('change', handleAuthChange);
+      authStore.removeEventListener('change', handleAuthChange);
       clearInterval(tokenCheckInterval);
     };
   }, []);

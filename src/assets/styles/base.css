@@ -1,0 +1,67 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+@import './variables.css';
+
+/* Reset y estilos base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-family-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
+  background-color: var(--color-shadow);
+  color: var(--color-ghost);
+}
+
+code {
+  font-family: var(--font-family-code);
+  background-color: var(--color-shadow);
+  color: var(--color-poison-light);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+}
+
+/* Estilos globales para enlaces */
+a {
+  color: var(--color-poison-light);
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+a:hover {
+  color: var(--color-poison);
+  text-decoration: underline;
+}
+
+/* Estilos globales para botones */
+button {
+  font-family: var(--font-family-base);
+}
+
+/* Estilos para scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-shadow);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-poison);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-poison-light);
+}
+
+/* Estilos para selección de texto */
+::selection {
+  background: var(--color-poison);
+  color: var(--color-ghost);
+} 

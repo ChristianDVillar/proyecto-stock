@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import authStore from '../../stores/AuthStore';
-import '../../styles/Header.css';
+import authStore from '../services/AuthStore';
+import '../assets/styles/Header.css';
 
 const Header = ({ onNavigate, isAdmin }) => {
     const [userName, setUserName] = useState(authStore.getUserName());
