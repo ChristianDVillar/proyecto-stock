@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import Quagga from 'quagga'; // Importar QuaggaJS
-import { FaTrash, FaPencilAlt, FaCamera, FaBarcode, FaStop } from 'react-icons/fa'; // Importar íconos
+import Quagga from '@ericblade/quagga2';
+import { FaTrash, FaPencilAlt, FaCamera, FaBarcode, FaStop } from 'react-icons/fa';
+import '../../styles/NewInventory.css';
+import DeviceTypeSelector from './DeviceTypeSelector';
 
 const NewInventory = () => {
     const [scannedBarcode, setScannedBarcode] = useState('');
@@ -26,156 +28,168 @@ const NewInventory = () => {
         };
     }, [isScanning]);
 
-    const startScanning = () => {
-        Quagga.init({
-            inputStream: {
-                name: "Live",
-                type: "LiveStream",
-                target: videoRef.current,
-                constraints: {
-                    facingMode: "environment"
-                },
-            },
-            decoder: {
-                readers: [
-                    "code_128_reader",
-                    "ean_reader",
-                    "ean_8_reader",
-                    "code_39_reader",
-                    "code_39_vin_reader",
-                    "codabar_reader",
-                    "upc_reader",
-                    "upc_e_reader",
-                    "i2of5_reader"
-                ],
-                debug: {
-                    showCanvas: true,
-                    showPatches: true,
-                    showFoundPatches: true,
-                    showSkeleton: true,
-                    showLabels: true,
-                    showPatchLabels: true,
-                    showRemainingPatchLabels: true,
-                    boxFromPatches: {
-                        showTransformed: true,
-                        showTransformedBox: true,
-                        showBB: true
-                    }
+    const startScanning = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { 
+                    facingMode: "environment",
+                    width: { min: 640, ideal: 1280, max: 1920 },
+                    height: { min: 480, ideal: 720, max: 1080 }
                 }
-            }
-        }, function(err) {
-            if (err) {
-                console.error(err);
-                alert('Error al iniciar el escáner: ' + err.message);
+            });
+
+            if (!videoRef.current) {
+                console.error('Video element not found');
                 return;
             }
-            setIsScanning(true);
-            Quagga.start();
-        });
 
-        Quagga.onDetected((result) => {
-            if (result.codeResult) {
-                setScannedBarcode(result.codeResult.code);
-                // Reproducir un sonido de éxito
-                const audio = new Audio('/assets/beep.mp3');
-                audio.play();
-                
-                // Opcional: detener el escaneo después de una lectura exitosa
-                // stopScanning();
+            videoRef.current.srcObject = stream;
+            await new Promise((resolve) => {
+                videoRef.current.onloadedmetadata = () => {
+                    resolve();
+                };
+            });
+
+            const config = {
+                inputStream: {
+                    type: "LiveStream",
+                    constraints: {
+                        ...stream.getVideoTracks()[0].getSettings()
+                    },
+                    area: {
+                        top: "0%",
+                        right: "0%",
+                        left: "0%",
+                        bottom: "0%"
+                    },
+                    target: videoRef.current
+                },
+                decoder: {
+                    readers: [
+                        "ean_reader",
+                        "ean_8_reader",
+                        "code_128_reader",
+                        "code_39_reader",
+                        "upc_reader",
+                        "upc_e_reader"
+                    ]
+                },
+                locate: true
+            };
+
+            try {
+                await Quagga.init(config);
+                Quagga.start();
+                setIsScanning(true);
+
+                Quagga.onDetected((result) => {
+                    if (result.codeResult) {
+                        setScannedBarcode(result.codeResult.code);
+                        const audio = new Audio('/assets/beep.mp3');
+                        audio.play().catch(e => console.log('Audio play failed:', e));
+                    }
+                });
+
+            } catch (err) {
+                console.error("Error starting Quagga:", err);
+                alert('Error al iniciar el escáner: ' + err.message);
             }
-        });
 
-        Quagga.onProcessed((result) => {
-            const drawingCtx = Quagga.canvas.ctx.overlay;
-            const drawingCanvas = Quagga.canvas.dom.overlay;
-
-            if (result) {
-                if (result.boxes) {
-                    drawingCtx.clearRect(0, 0, parseInt(drawingCanvas.getAttribute("width")), parseInt(drawingCanvas.getAttribute("height")));
-                    result.boxes.filter(function(box) {
-                        return box !== result.box;
-                    }).forEach(function(box) {
-                        Quagga.ImageDebug.drawPath(box, { x: 0, y: 1 }, drawingCtx, { color: "green", lineWidth: 2 });
-                    });
-                }
-
-                if (result.box) {
-                    Quagga.ImageDebug.drawPath(result.box, { x: 0, y: 1 }, drawingCtx, { color: "#00F", lineWidth: 2 });
-                }
-
-                if (result.codeResult && result.codeResult.code) {
-                    Quagga.ImageDebug.drawPath(result.line, { x: 'x', y: 'y' }, drawingCtx, { color: 'red', lineWidth: 3 });
-                }
-            }
-        });
+        } catch (error) {
+            console.error('Error accessing camera:', error);
+            alert('Error al acceder a la cámara: ' + error.message);
+        }
     };
 
     const stopScanning = () => {
         if (isScanning) {
-            Quagga.stop();
+            try {
+                Quagga.stop();
+            } catch (err) {
+                console.error("Error stopping Quagga:", err);
+            }
             setIsScanning(false);
+            
+            if (videoRef.current && videoRef.current.srcObject) {
+                const tracks = videoRef.current.srcObject.getTracks();
+                tracks.forEach(track => track.stop());
+                videoRef.current.srcObject = null;
+            }
         }
     };
 
     const handleImageChange = (e) => {
         const file = e.target.files[0];
-        const reader = new FileReader();
+        if (!file) return;
 
-        reader.onload = function(event) {
+        const reader = new FileReader();
+        reader.onload = async (event) => {
             setImageSrc(event.target.result);
 
-            const img = new Image();
-            img.src = event.target.result;
-            img.onload = function() {
-                console.log('Image loaded, starting barcode detection...');
-
-                Quagga.decodeSingle({
-                    src: img.src,
-                    numOfWorkers: 0,
+            try {
+                const result = await Quagga.decodeSingle({
+                    decoder: {
+                        readers: [
+                            "ean_reader",
+                            "ean_8_reader",
+                            "code_128_reader",
+                            "code_39_reader",
+                            "upc_reader",
+                            "upc_e_reader",
+                            "codabar_reader",
+                            "i2of5_reader"
+                        ],
+                        multiple: false
+                    },
+                    locate: true,
+                    src: event.target.result,
+                    numOfWorkers: navigator.hardwareConcurrency || 4,
                     inputStream: {
-                        size: 800,
+                        size: 1600,
                         singleChannel: false
                     },
                     locator: {
-                        patchSize: "x-large",
-                        halfSample: true
+                        patchSize: "large",
+                        halfSample: false
                     },
-                    decoder: {
-                        readers: [
-                            "code_128_reader",
-                            "ean_reader",
-                            "ean_8_reader",
-                            "code_39_reader",
-                            "code_39_vin_reader",
-                            "codabar_reader",
-                            "upc_reader",
-                            "upc_e_reader",
-                            "i2of5_reader",
-                            "2of5_reader",
-                            "code_93_reader"
-                        ]
-                    }
-                    ,
-                    locate: true
-                }, function(result) {
-                    if (result && result.codeResult) {
-                        setScannedBarcode(result.codeResult.code);
-                    } else {
-                        setScannedBarcode('');
-                        alert("No barcode detected. Please try again.");
+                    debug: {
+                        showCanvas: true,
+                        showPatches: true,
+                        showFoundPatches: true,
+                        showSkeleton: true,
+                        showLabels: true,
+                        showPatchLabels: true,
+                        showRemainingPatchLabels: true,
+                        boxFromPatches: {
+                            showTransformed: true,
+                            showTransformedBox: true,
+                            showBB: true
+                        }
                     }
                 });
-            };
 
-            img.onerror = function() {
+                if (result && result.codeResult) {
+                    console.log("Código detectado:", result.codeResult.code);
+                    setScannedBarcode(result.codeResult.code);
+                    
+                    // Reproducir sonido de éxito
+                    const audio = new Audio('/assets/beep.mp3');
+                    audio.play().catch(e => console.log('Audio play failed:', e));
+                } else {
+                    console.log("No se detectó código de barras");
+                    setScannedBarcode('');
+                    alert("No se detectó ningún código de barras. Por favor, intente de nuevo con una imagen más clara.");
+                }
+            } catch (error) {
+                console.error('Error al procesar la imagen:', error);
                 setScannedBarcode('');
-                alert("Error loading image. Please try again.");
-            };
+                alert("Error al procesar la imagen. Por favor, asegúrese de que la imagen sea clara y contenga un código de barras válido.");
+            }
         };
 
-        reader.onerror = function() {
+        reader.onerror = () => {
             setScannedBarcode('');
-            alert("Error reading file. Please try again.");
+            alert("Error al leer el archivo. Por favor, intente de nuevo.");
         };
 
         reader.readAsDataURL(file);
@@ -186,6 +200,13 @@ const NewInventory = () => {
         setFormData(prevState => ({
             ...prevState,
             [id]: value
+        }));
+    };
+
+    const handleDeviceTypeChange = (value) => {
+        setFormData(prevState => ({
+            ...prevState,
+            dispositivo: value
         }));
     };
 
@@ -241,33 +262,100 @@ const NewInventory = () => {
 
     const handleSaveToServer = async () => {
         try {
-            const response = await fetch('/api/stock', {
+            const token = localStorage.getItem('jwt_token');
+            console.log('Token almacenado:', token); // Debug log
+            
+            if (!token) {
+                throw new Error('No hay sesión activa. Por favor, inicie sesión nuevamente.');
+            }
+
+            // Verificar que el token tenga el formato correcto
+            if (!token.startsWith('Bearer ')) {
+                console.log('Token no tiene el prefijo Bearer, agregándolo...');
+                localStorage.setItem('jwt_token', `Bearer ${token}`);
+            }
+
+            if (!scannedBarcode || !formData.inventario || !formData.dispositivo || !formData.modelo) {
+                throw new Error('Por favor, complete todos los campos requeridos.');
+            }
+
+            const cantidad = parseInt(formData.cantidad);
+            if (isNaN(cantidad) || cantidad <= 0) {
+                throw new Error('La cantidad debe ser un número mayor que 0.');
+            }
+
+            const requestData = {
+                barcode: scannedBarcode,
+                inventario: formData.inventario,
+                dispositivo: formData.dispositivo,  // Enviamos el ID del tipo tal cual viene del selector
+                modelo: formData.modelo,
+                descripcion: formData.descripcion || '',
+                cantidad: cantidad,
+                purchase_date: new Date().toISOString().split('T')[0],
+                location: 'default'
+            };
+
+            console.log('Enviando datos al servidor:', requestData);
+            console.log('Headers de la petición:', {
+                'Content-Type': 'application/json',
+                'Authorization': token,
+                'Accept': 'application/json'
+            });
+
+            const response = await fetch('http://localhost:5000/api/stock', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': token,
+                    'Accept': 'application/json'
                 },
-                body: JSON.stringify({
-                    barcode: scannedBarcode,
-                    inventario: formData.inventario,
-                    dispositivo: formData.dispositivo,
-                    modelo: formData.modelo,
-                    descripcion: formData.descripcion,
-                    cantidad: parseInt(formData.cantidad),
-                    stocktype: formData.dispositivo.toLowerCase(),
-                    image: imageSrc
-                })
+                credentials: 'include',
+                mode: 'cors',
+                body: JSON.stringify(requestData)
             });
 
-            if (!response.ok) {
-                throw new Error('Error al guardar en el servidor');
+            const textResponse = await response.text();
+            console.log('Respuesta del servidor (texto):', textResponse);
+            
+            let data;
+            try {
+                data = JSON.parse(textResponse);
+                console.log('Respuesta del servidor (parseada):', data);
+            } catch (parseError) {
+                console.error('Error parsing response:', textResponse);
+                throw new Error('Error en el servidor: Respuesta no válida');
             }
 
-            const data = await response.json();
-            handleSave(); // Actualiza la UI local
-            alert('Guardado exitosamente en el servidor');
+            if (!response.ok) {
+                const errorMessage = data.error || data.message || 'Error desconocido';
+                if (response.status === 401) {
+                    // Mostrar el mensaje de error antes de redirigir
+                    alert(`Error de autenticación: ${errorMessage}`);
+                    console.log('Error de autenticación - redirigiendo a login');
+                    localStorage.removeItem('jwt_token');
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 2000); // Esperar 2 segundos antes de redirigir
+                    return;
+                }
+                throw new Error(errorMessage);
+            }
+
+            // Éxito - limpiar el formulario
+            setScannedBarcode('');
+            setFormData({
+                inventario: '',
+                dispositivo: '',
+                modelo: '',
+                descripcion: '',
+                cantidad: ''
+            });
+            setImageSrc('');
+            alert('Stock guardado exitosamente');
+
         } catch (error) {
             console.error('Error:', error);
-            alert('Error al guardar: ' + error.message);
+            alert(error.message);
         }
     };
 
@@ -298,14 +386,29 @@ const NewInventory = () => {
             </div>
 
             <div className="scanner-container">
-                {isScanning && (
-                    <div className="viewport">
-                        <video ref={videoRef}></video>
-                        <canvas className="drawingBuffer"></canvas>
-                    </div>
-                )}
+                <div className="viewport" style={{ display: isScanning ? 'block' : 'none' }}>
+                    <video 
+                        ref={videoRef}
+                        playsInline
+                        autoPlay
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover'
+                        }}
+                    ></video>
+                </div>
                 {!isScanning && imageSrc && (
-                    <img id="uploaded-image" src={imageSrc} alt="Uploaded" />
+                    <img 
+                        id="uploaded-image" 
+                        src={imageSrc} 
+                        alt="Uploaded" 
+                        style={{
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            objectFit: 'contain'
+                        }}
+                    />
                 )}
             </div>
 
@@ -327,13 +430,13 @@ const NewInventory = () => {
                         value={formData.inventario} 
                         onChange={handleInputChange} 
                     />
-                    <input 
-                        type="text" 
-                        id="dispositivo" 
-                        placeholder="Dispositivo" 
-                        value={formData.dispositivo} 
-                        onChange={handleInputChange} 
-                    />
+                    <div className="form-group">
+                        <label htmlFor="dispositivo">Dispositivo</label>
+                        <DeviceTypeSelector
+                            value={formData.dispositivo}
+                            onChange={handleDeviceTypeChange}
+                        />
+                    </div>
                     <input 
                         type="text" 
                         id="modelo" 

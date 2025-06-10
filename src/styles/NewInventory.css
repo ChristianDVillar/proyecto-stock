@@ -16,6 +16,9 @@
     align-items: center;
     gap: 0.5rem;
     transition: background-color 0.3s;
+    font-size: 1rem;
+    min-width: 150px;
+    justify-content: center;
 }
 
 .scanner-button:hover {
@@ -40,6 +43,8 @@
     align-items: center;
     gap: 0.5rem;
     transition: background-color 0.3s;
+    min-width: 150px;
+    justify-content: center;
 }
 
 .file-upload label:hover {
@@ -55,12 +60,14 @@
     background-color: #f8f9fa;
     border-radius: 8px;
     overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .viewport {
     position: relative;
     width: 100%;
     height: 100%;
+    background-color: #000;
 }
 
 .viewport video {
@@ -93,6 +100,7 @@
     text-align: center;
     background-color: #f8f9fa;
     color: #212529;
+    font-weight: 600;
 }
 
 .form-grid {
@@ -103,10 +111,18 @@
 }
 
 .form-grid input {
-    padding: 0.5rem;
+    padding: 0.75rem;
     border: 1px solid #ced4da;
     border-radius: 4px;
     font-size: 1rem;
+    width: 100%;
+    transition: border-color 0.3s;
+}
+
+.form-grid input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
 }
 
 .save-button {
@@ -119,6 +135,7 @@
     font-size: 1.1rem;
     cursor: pointer;
     transition: background-color 0.3s;
+    font-weight: 500;
 }
 
 .save-button:hover {
@@ -128,6 +145,7 @@
 .save-button:disabled {
     background-color: #6c757d;
     cursor: not-allowed;
+    opacity: 0.65;
 }
 
 /* Tabla de inventario */
@@ -135,6 +153,8 @@ table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 2rem;
+    background-color: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 th, td {
@@ -146,23 +166,62 @@ th, td {
 th {
     background-color: #f8f9fa;
     font-weight: 600;
+    color: #495057;
 }
 
 tr:hover {
     background-color: #f8f9fa;
 }
 
+td {
+    vertical-align: middle;
+}
+
 .action-icons {
     display: flex;
     gap: 0.5rem;
+    justify-content: flex-start;
+    align-items: center;
 }
 
 .action-icons svg {
     cursor: pointer;
     color: #6c757d;
     transition: color 0.3s;
+    font-size: 1.1rem;
 }
 
 .action-icons svg:hover {
     color: #343a40;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .scanner-container {
+        max-width: 100%;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .scanner-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .scanner-button,
+    .file-upload label {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Additional styles for the uploaded image */
+#uploaded-image {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
 } 

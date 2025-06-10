@@ -1,73 +1,133 @@
 # src/api/models.py
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Enum, Index, event
+from sqlalchemy import Enum, Index, event, String
 from datetime import datetime, timedelta
 import enum
 import uuid
+from flask_login import UserMixin
 
 # Inicializa SQLAlchemy
 db = SQLAlchemy()
 
 # Enum para tipos de usuario
 class UserTypeEnum(enum.Enum):
-    admin = "admin"
-    tecnico = "tecnico"
-    usuario = "usuario"
+    admin = 'admin'
+    user = 'user'
+
+    def __str__(self):
+        return self.value
+
+# Enum para tipos de dispositivos
+class DeviceTypeEnum(enum.Enum):
+    computadora = 'computadora'
+    impresora = 'impresora'
+    monitor = 'monitor'
+    teclado = 'teclado'
+    mouse = 'mouse'
+    router = 'router'
+    switch = 'switch'
+    servidor = 'servidor'
+    laptop = 'laptop'
+    tablet = 'tablet'
+    smartphone = 'smartphone'
+    otro = 'otro'
+
+# Modelo para tipos de dispositivos personalizados
+class CustomDeviceType(db.Model):
+    __tablename__ = 'custom_device_types'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+
+    def __repr__(self):
+        return f'<CustomDeviceType {self.name}>'
 
 # Enum para tipos de stock
 class StockTypeEnum(enum.Enum):
-    monitor = "monitor"
-    teclado = "teclado"
-    cable = "cable"
-    mouse = "mouse"
-    camara = "camara"
-    otro = "otro"
+    computadora = 'computadora'
+    impresora = 'impresora'
+    monitor = 'monitor'
+    teclado = 'teclado'
+    mouse = 'mouse'
+    router = 'router'
+    switch = 'switch'
+    servidor = 'servidor'
+    laptop = 'laptop'
+    tablet = 'tablet'
+    smartphone = 'smartphone'
+    otro = 'otro'
+
+# Modelo para tipos de stock personalizados
+class CustomStockType(db.Model):
+    __tablename__ = 'custom_stock_types'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+
+    def __repr__(self):
+        return f'<CustomStockType {self.name}>'
 
 # Enum para estados de stock
 class StockStatusEnum(enum.Enum):
-    disponible = "disponible"
-    asignado = "asignado"
-    mantenimiento = "mantenimiento"
-    baja = "baja"
+    disponible = 'disponible'
+    en_uso = 'en_uso'
+    mantenimiento = 'mantenimiento'
+    baja = 'baja'
 
 # Modelo de Usuario
-class User(db.Model):
+class User(UserMixin, db.Model):
     __tablename__ = 'users'
+    
     id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(30), unique=True, nullable=False)
-    firstName = db.Column(db.String(20), nullable=False)
-    lastName = db.Column(db.String(20), nullable=False)
-    password = db.Column(db.String(80), nullable=False)
-    isActive = db.Column(db.Boolean, default=True, nullable=False)
-    usertype = db.Column(db.Enum(UserTypeEnum), nullable=False)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password = db.Column(db.String(120), nullable=False)
+    user_type = db.Column(db.Enum(UserTypeEnum), nullable=False, default=UserTypeEnum.user)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    last_login = db.Column(db.DateTime)
+    is_active = db.Column(db.Boolean, default=True)
+    
+    # Relaciones
+    forms = db.relationship('Form', backref='user', lazy=True)
 
     def __repr__(self):
-        return f'<User {self.email}>'
+        return f'<User {self.username}>'
+
+    def to_dict(self):
+        print(f"Converting user to dict: {self.username}, type: {self.user_type}")  # Debug log
+        user_type_value = self.user_type.value if isinstance(self.user_type, UserTypeEnum) else self.user_type
+        print(f"User type value: {user_type_value}")  # Debug log
+        return {
+            'id': self.id,
+            'username': self.username,
+            'user_type': user_type_value,
+            'is_active': self.is_active,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
 
 # Modelo de Stock
 class Stock(db.Model):
     __tablename__ = 'stock'
+
     id = db.Column(db.Integer, primary_key=True)
-    barcode = db.Column(db.String(100), unique=True, nullable=False)
-    inventario = db.Column(db.String(100), nullable=False)
-    dispositivo = db.Column(db.String(100), nullable=False)
-    modelo = db.Column(db.String(100), nullable=False)
-    descripcion = db.Column(db.String(250))
-    cantidad = db.Column(db.Integer, default=1, nullable=False)
-    stocktype = db.Column(db.Enum(StockTypeEnum), nullable=False)
-    status = db.Column(db.Enum(StockStatusEnum), default=StockStatusEnum.disponible, nullable=False)
-    location = db.Column(db.String(100))
-    serial_number = db.Column(db.String(100), unique=True)
+    barcode = db.Column(db.String(50), unique=True, nullable=False)
+    inventario = db.Column(db.String(50), nullable=False)
+    dispositivo = db.Column(db.Enum(StockTypeEnum), nullable=False)
+    modelo = db.Column(db.String(50), nullable=False)
+    descripcion = db.Column(db.String(200))
+    cantidad = db.Column(db.Integer, default=1)
+    stocktype = db.Column(db.Enum(StockTypeEnum), default=StockTypeEnum.computadora)
+    status = db.Column(db.Enum(StockStatusEnum), default=StockStatusEnum.disponible)
+    location = db.Column(db.String(50), default='default')
+    serial_number = db.Column(db.String(50))
     purchase_date = db.Column(db.Date)
     warranty_expiry = db.Column(db.Date)
     last_maintenance = db.Column(db.DateTime)
     next_maintenance = db.Column(db.DateTime)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    image_url = db.Column(db.String(250))
+    image_url = db.Column(db.String(200))
 
     # Relaciones
     movements = db.relationship('StockMovement', back_populates='stock')
@@ -80,7 +140,7 @@ class Stock(db.Model):
     )
 
     def __repr__(self):
-        return f'<Stock {self.inventario} ({self.barcode})>'
+        return f'<Stock {self.barcode}>'
 
 # Modelo de Movimiento de Stock
 class StockMovement(db.Model):
@@ -89,11 +149,11 @@ class StockMovement(db.Model):
     stock_id = db.Column(db.Integer, db.ForeignKey('stock.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
-    movement_type = db.Column(db.String(20), nullable=False)  # entrada, salida, transferencia
+    movement_type = db.Column(db.String(20), nullable=False)  # entrada/salida
     from_location = db.Column(db.String(100))
     to_location = db.Column(db.String(100))
-    notes = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    notes = db.Column(db.Text)
 
     # Relaciones
     stock = db.relationship('Stock', back_populates='movements')
@@ -111,11 +171,11 @@ class MaintenanceRecord(db.Model):
     stock_id = db.Column(db.Integer, db.ForeignKey('stock.id'), nullable=False)
     technician_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     maintenance_type = db.Column(db.String(50), nullable=False)
-    description = db.Column(db.Text, nullable=False)
-    cost = db.Column(db.Numeric(10, 2))
+    description = db.Column(db.Text)
     date_performed = db.Column(db.DateTime, default=datetime.utcnow)
     next_maintenance = db.Column(db.DateTime)
-    status = db.Column(db.String(20), nullable=False)  # pendiente, en_proceso, completado
+    cost = db.Column(db.Float)
+    status = db.Column(db.String(20))  # pendiente/en_proceso/completado
     
     # Relaciones
     stock = db.relationship('Stock', back_populates='maintenance_records')
@@ -151,29 +211,29 @@ class UserSession(db.Model):
 
 # Modelo de Formulario
 class Form(db.Model):
-    __tablename__ = 'form'
+    __tablename__ = 'forms'
+    
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.Date, nullable=False)
-    userId = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    user_relationship = db.relationship("User")
-    detailform_relationship = db.relationship("DetailForm", back_populates='form')
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    details = db.relationship("DetailForm", backref='form', lazy=True)
 
     def __repr__(self):
         return f'<Form {self.id}>'
 
 # Modelo de Detalle del Formulario
 class DetailForm(db.Model):
-    __tablename__ = 'detailForm'
+    __tablename__ = 'detail_forms'
+    
     id = db.Column(db.Integer, primary_key=True)
-    formId = db.Column(db.Integer, db.ForeignKey('form.id'), nullable=False)
-    form = db.relationship("Form", back_populates='detailform_relationship')
-    stockId = db.Column(db.Integer, db.ForeignKey('stock.id'), nullable=False)
-    stock_relationship = db.relationship("Stock")
+    form_id = db.Column(db.Integer, db.ForeignKey('forms.id'), nullable=False)
+    stock_id = db.Column(db.Integer, db.ForeignKey('stock.id'), nullable=False)
+    stock = db.relationship("Stock")
     description = db.Column(db.String(30), nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
     stocktype = db.Column(db.Enum(StockTypeEnum), nullable=False)
-    initialDate = db.Column(db.Date, nullable=False)
-    finalDate = db.Column(db.Date, nullable=False)
+    initial_date = db.Column(db.Date, nullable=False)
+    final_date = db.Column(db.Date, nullable=False)
 
     def __repr__(self):
         return f'<DetailForm {self.id}>'
@@ -182,9 +242,10 @@ class DetailForm(db.Model):
 class UserUUID(db.Model):
     __tablename__ = 'user_uuid'
     id = db.Column(db.Integer, primary_key=True)
-    userId = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     uuid = db.Column(db.String(36), unique=True, nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    user = db.relationship('User', backref='uuids')
 
     def is_expired(self):
         expiration_time = self.created_at + timedelta(minutes=45)
