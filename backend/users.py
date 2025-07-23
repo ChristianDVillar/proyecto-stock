@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash
-from .models import db, User, UserTypeEnum
+from models import db, User, UserTypeEnum
 
 users = Blueprint('users', __name__)
 

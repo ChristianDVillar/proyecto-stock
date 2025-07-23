@@ -4,7 +4,7 @@ from flask_jwt_extended import (
     get_jwt, verify_jwt_in_request
 )
 from werkzeug.security import generate_password_hash, check_password_hash
-from .models import db, User, UserTypeEnum
+from models import db, User, UserTypeEnum
 import datetime
 
 auth = Blueprint('auth', __name__)
@@ -12,15 +12,17 @@ auth = Blueprint('auth', __name__)
 @auth.after_request
 def after_request(response):
     """Ensure proper CORS headers are set for all auth routes"""
-    origin = request.headers.get('Origin', 'http://localhost:3000')
-    response.headers.update({
-        'Access-Control-Allow-Origin': origin,
-        'Access-Control-Allow-Credentials': 'true',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, X-Requested-With',
-        'Access-Control-Expose-Headers': 'Authorization',
-        'Vary': 'Origin'
-    })
+    origin = request.headers.get('Origin', 'http://localhost:3004')
+    allowed_origins = ['http://localhost:3000', 'http://localhost:3004']
+    if origin in allowed_origins:
+        response.headers.update({
+            'Access-Control-Allow-Origin': origin,
+            'Access-Control-Allow-Credentials': 'true',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, X-Requested-With',
+            'Access-Control-Expose-Headers': 'Authorization',
+            'Vary': 'Origin'
+        })
     return response
 
 @auth.route('/debug', methods=['GET'])
@@ -36,6 +38,7 @@ def debug_session():
             user_identity = get_jwt_identity()
         except Exception as e:
             print(f"Token verification failed: {str(e)}")
+            return jsonify({'error': 'Token inválido', 'valid_token': False}), 401
 
         # Recopilar información de la sesión
         session_info = {
@@ -84,14 +87,28 @@ def register():
             db.session.add(new_user)
             db.session.commit()
             print(f"Usuario creado exitosamente: {new_user.username}")  # Debug log
-            return jsonify({
-                'message': 'Usuario registrado exitosamente',
+
+            # Generar token igual que en login
+            access_token = create_access_token(
+                identity=str(new_user.id),
+                additional_claims={
+                    'username': new_user.username,
+                    'user_type': new_user.user_type.value,
+                    'created_at': datetime.datetime.utcnow().isoformat()
+                }
+            )
+            response_data = {
+                'access_token': access_token,
                 'user': {
                     'id': new_user.id,
                     'username': new_user.username,
                     'user_type': new_user.user_type.value
                 }
-            }), 201
+            }
+            response = make_response(jsonify(response_data))
+            set_access_cookies(response, access_token)
+            response.headers['Authorization'] = f'Bearer {access_token}'
+            return response, 201
         except Exception as e:
             db.session.rollback()
             print(f"Error al guardar usuario en la base de datos: {str(e)}")  # Debug log

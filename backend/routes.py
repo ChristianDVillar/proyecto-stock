@@ -1,11 +1,13 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import or_, func
-from .models import db, Stock, StockMovement, MaintenanceRecord, StockStatusEnum, StockTypeEnum, CustomStockType, DeviceTypeEnum, CustomDeviceType
+from models import db, Stock, StockMovement, MaintenanceRecord, StockStatusEnum, StockTypeEnum, CustomStockType, DeviceTypeEnum, CustomDeviceType
 from datetime import datetime
 import boto3
 import os
 from sqlalchemy.orm import Session
+from werkzeug.security import generate_password_hash
+from models import User, UserTypeEnum
 
 api = Blueprint('api', __name__)
 s3 = boto3.client('s3')
@@ -474,3 +476,41 @@ def add_stock_type():
             'error': 'Error al crear el tipo',
             'message': str(e)
         }), 500 
+
+@api.route('/users', methods=['POST'])
+def create_user():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No se recibieron datos'}), 400
+        username = data.get('username')
+        password = data.get('password')
+        user_type = data.get('user_type', 'user')
+        is_active = data.get('is_active', True)
+
+        if not username or not password:
+            return jsonify({'error': 'Faltan campos requeridos: username y password'}), 400
+
+        # Verificar si el usuario ya existe
+        if User.query.filter_by(username=username).first():
+            return jsonify({'error': 'El usuario ya existe'}), 400
+
+        # Validar tipo de usuario
+        try:
+            user_type_enum = UserTypeEnum(user_type)
+        except ValueError:
+            return jsonify({'error': 'Tipo de usuario inválido'}), 400
+
+        hashed_password = generate_password_hash(password)
+        new_user = User(
+            username=username,
+            password=hashed_password,
+            user_type=user_type_enum,
+            is_active=is_active
+        )
+        db.session.add(new_user)
+        db.session.commit()
+        return jsonify({'message': 'Usuario creado exitosamente', 'user': new_user.to_dict()}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Error al crear el usuario', 'message': str(e)}), 500 
