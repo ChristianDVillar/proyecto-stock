@@ -477,6 +477,30 @@ def add_stock_type():
             'message': str(e)
         }), 500 
 
+@api.route('/stock/types/<int:type_id>', methods=['PUT', 'DELETE', 'OPTIONS'])
+@jwt_required()
+def update_or_delete_stock_type(type_id):
+    if request.method == 'OPTIONS':
+        # Permitir preflight de CORS
+        return '', 200
+
+    custom_type = CustomStockType.query.get(type_id)
+    if not custom_type:
+        return jsonify({'error': 'Tipo no encontrado'}), 404
+
+    if request.method == 'PUT':
+        data = request.get_json()
+        if not data or 'name' not in data:
+            return jsonify({'error': 'Nombre requerido'}), 400
+        custom_type.name = data['name'].lower()
+        db.session.commit()
+        return jsonify({'message': 'Tipo actualizado', 'type': {'id': f'custom_{custom_type.id}', 'name': custom_type.name}}), 200
+
+    if request.method == 'DELETE':
+        db.session.delete(custom_type)
+        db.session.commit()
+        return jsonify({'message': 'Tipo eliminado'}), 200
+
 @api.route('/users', methods=['POST'])
 def create_user():
     try:

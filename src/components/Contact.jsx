@@ -1,6 +1,5 @@
 // src/components/Contact.js
 import React, { useState } from 'react';
-import '../../styles/Contact.css'; // Add CSS styles for the modal here
 
 const Contact = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -10,13 +9,20 @@ const Contact = () => {
 
     return (
         <>
-            <button onClick={openModal} id="contact-link">Contacto</button>
+            <button onClick={openModal} className="btn btn-ghost" id="contact-link">Contacto</button>
             {isOpen && (
-                <div id="contact-modal" className="modal">
-                    <div className="modal-content">
-                        <span className="close-button" onClick={closeModal}>&times;</span>
-                        <h1>Contacto</h1>
-                        <p>Para más información, contacta con nosotros en <a href="mailto:christianvillar@live.com.ar">christianvillar@live.com.ar</a></p>
+                <div className="modal-overlay" id="contact-modal">
+                    <div className="modal-content card">
+                        <div className="card-header">
+                            <button className="btn btn-icon btn-ghost" onClick={closeModal}>&times;</button>
+                            <h2 className="card-title">Contacto</h2>
+                        </div>
+                        <p className="mb-4">
+                            Para más información, contacta con nosotros en{' '}
+                            <a href="mailto:christianvillar@live.com.ar" className="text-accent">
+                                christianvillar@live.com.ar
+                            </a>
+                        </p>
                     </div>
                 </div>
             )}

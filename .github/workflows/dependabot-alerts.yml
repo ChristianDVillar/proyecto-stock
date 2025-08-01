@@ -1,0 +1,19 @@
+name: Dependabot Alerts Notification
+on:
+  dependabot_alert:
+    types: [created, reopened, fixed]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: read
+    steps:
+      - name: Get Alert Details
+        run: |
+          echo "Nueva alerta de Dependabot:"
+          echo "Severidad: ${{ github.event.alert.security_advisory.severity }}"
+          echo "Paquete: ${{ github.event.alert.security_vulnerability.package.name }}"
+          echo "Versión vulnerable: ${{ github.event.alert.security_vulnerability.vulnerable_version_range }}"
+          echo "Descripción: ${{ github.event.alert.security_advisory.description }}" 

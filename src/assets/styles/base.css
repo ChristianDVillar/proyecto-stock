@@ -1,7 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 @import './variables.css';
 
-/* Reset y estilos base */
+/* Reset básico */
 * {
   margin: 0;
   padding: 0;
@@ -12,35 +11,52 @@ body {
   font-family: var(--font-family-base);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
   line-height: 1.6;
-  background-color: var(--color-shadow);
-  color: var(--color-ghost);
 }
 
-code {
-  font-family: var(--font-family-code);
-  background-color: var(--color-shadow);
-  color: var(--color-poison-light);
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border-radius: var(--border-radius-sm);
+/* Estilos base para elementos comunes */
+h1, h2, h3, h4, h5, h6 {
+  margin-bottom: var(--spacing-md);
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
-/* Estilos globales para enlaces */
+p {
+  margin-bottom: var(--spacing-md);
+  color: var(--text-primary);
+}
+
 a {
-  color: var(--color-poison-light);
+  color: var(--accent-color);
   text-decoration: none;
-  transition: all 0.3s ease;
+  transition: color 0.3s ease;
 }
 
 a:hover {
-  color: var(--color-poison);
-  text-decoration: underline;
+  color: var(--hover-accent);
 }
 
-/* Estilos globales para botones */
-button {
-  font-family: var(--font-family-base);
+/* Layout base */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing-md);
 }
+
+/* Utilidades comunes */
+.text-center {
+  text-align: center;
+}
+
+.mt-1 { margin-top: var(--spacing-sm); }
+.mt-2 { margin-top: var(--spacing-md); }
+.mt-3 { margin-top: var(--spacing-lg); }
+.mb-1 { margin-bottom: var(--spacing-sm); }
+.mb-2 { margin-bottom: var(--spacing-md); }
+.mb-3 { margin-bottom: var(--spacing-lg); }
 
 /* Estilos para scrollbar */
 ::-webkit-scrollbar {
@@ -48,20 +64,20 @@ button {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-shadow);
+  background: var(--bg-tertiary);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-poison);
+  background: var(--primary-color);
   border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-poison-light);
+  background: var(--hover-primary);
 }
 
 /* Estilos para selección de texto */
 ::selection {
-  background: var(--color-poison);
-  color: var(--color-ghost);
+  background: var(--accent-color);
+  color: var(--text-light);
 } 

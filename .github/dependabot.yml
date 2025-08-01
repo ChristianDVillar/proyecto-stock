@@ -1,0 +1,43 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    versioning-strategy: auto
+    labels:
+      - "npm"
+      - "dependencies"
+    assignees:
+      - "ChristianDVillar"
+    reviewers:
+      - "ChristianDVillar"
+
+  - package-ecosystem: "npm"
+    directory: "/Stocker"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    versioning-strategy: auto
+    labels:
+      - "npm"
+      - "dependencies"
+    assignees:
+      - "ChristianDVillar"
+    reviewers:
+      - "ChristianDVillar"
+
+  - package-ecosystem: "npm"
+    directory: "/Stocker/StockerMobile"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    versioning-strategy: auto
+    labels:
+      - "npm"
+      - "dependencies"
+    assignees:
+      - "ChristianDVillar"
+    reviewers:
+      - "ChristianDVillar" 

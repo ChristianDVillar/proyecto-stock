@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import authStore from '../services/AuthStore';
 
 const DeviceTypeSelector = ({ value, onChange }) => {
     const [types, setTypes] = useState([]);
@@ -16,7 +17,7 @@ const DeviceTypeSelector = ({ value, onChange }) => {
         try {
             setLoading(true);
             setError(null);
-            const token = localStorage.getItem('jwt_token');
+            const token = authStore.getToken();
 
             if (!token) {
                 handleLogout();
@@ -87,7 +88,7 @@ const DeviceTypeSelector = ({ value, onChange }) => {
         if (!customType.trim()) return;
 
         try {
-            const token = localStorage.getItem('jwt_token');
+            const token = authStore.getToken();
             if (!token) {
                 handleLogout();
                 return;
@@ -100,7 +101,7 @@ const DeviceTypeSelector = ({ value, onChange }) => {
                     'Authorization': token,
                     'Accept': 'application/json'
                 },
-                body: JSON.stringify({ name: customType })
+                body: JSON.stringify({ type: customType.trim() })
             });
 
             if (response.status === 401) {
@@ -108,90 +109,122 @@ const DeviceTypeSelector = ({ value, onChange }) => {
                 return;
             }
 
-            const textResponse = await response.text();
-            console.log('Respuesta del servidor (agregar tipo):', textResponse);
-
             if (!response.ok) {
-                throw new Error(`Error al agregar tipo: ${textResponse}`);
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Error al agregar el tipo');
             }
 
-            const result = JSON.parse(textResponse);
-            console.log('Tipo personalizado agregado:', result);
-            
+            // Recargar los tipos después de agregar uno nuevo
             await fetchStockTypes();
-            
-            const newTypeId = `custom_${result.type.id}`;
-            onChange(newTypeId);
             setShowCustomInput(false);
             setCustomType('');
+            onChange(customType.trim());
         } catch (error) {
-            console.error('Error detallado:', error);
-            if (error.message.includes('Token inválido') || error.message.includes('Authorization')) {
-                handleLogout();
-            } else {
-                alert('Error al agregar el tipo personalizado: ' + error.message);
-            }
+            console.error('Error al agregar tipo:', error);
+            setError(error.message);
         }
     };
 
     if (loading) {
-        return <div>Cargando tipos...</div>;
+        return (
+            <div style={{
+                padding: '12px',
+                border: '2px solid #dfe6e9',
+                borderRadius: '8px',
+                backgroundColor: '#f8f9fa',
+                color: '#636e72',
+                fontSize: '14px'
+            }}>
+                Cargando tipos de dispositivos...
+            </div>
+        );
     }
 
     if (error) {
         return (
-            <div>
-                <div style={{color: 'red', marginBottom: '10px'}}>Error: {error}</div>
-                <button 
-                    className="btn btn-primary" 
-                    onClick={fetchStockTypes}
-                >
-                    Reintentar
-                </button>
-                <button 
-                    className="btn btn-secondary ml-2" 
-                    onClick={handleLogout}
-                >
-                    Cerrar Sesión
-                </button>
+            <div style={{
+                padding: '12px',
+                border: '2px solid #e17055',
+                borderRadius: '8px',
+                backgroundColor: 'rgba(225, 112, 85, 0.1)',
+                color: '#e17055',
+                fontSize: '14px'
+            }}>
+                Error: {error}
             </div>
         );
     }
 
     return (
-        <div className="device-type-selector">
-            <select 
-                value={value} 
+        <div style={{ marginBottom: '20px' }}>
+            <select
+                value={value}
                 onChange={handleTypeChange}
-                className="form-control"
-                id="dispositivo"
+                style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '2px solid #dfe6e9',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    transition: 'border-color 0.3s ease',
+                    backgroundColor: '#ffffff',
+                    color: '#2d3436'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#74b9ff'}
+                onBlur={(e) => e.target.style.borderColor = '#dfe6e9'}
             >
-                <option value="">Seleccione un tipo</option>
-                {types.map(type => (
-                    <option key={type.id} value={type.id}>
+                <option value="">Selecciona un tipo de dispositivo</option>
+                {types.map((type) => (
+                    <option key={type.id} value={type.name}>
                         {type.name}
                     </option>
                 ))}
+                <option value="otro">Otro (especificar)</option>
             </select>
 
             {showCustomInput && (
-                <div className="custom-type-input mt-2">
-                    <div className="input-group">
+                <div style={{ marginTop: '12px' }}>
+                    <div style={{
+                        display: 'flex',
+                        gap: '8px',
+                        alignItems: 'center'
+                    }}>
                         <input
                             type="text"
-                            className="form-control"
-                            placeholder="Ingrese nuevo tipo"
                             value={customType}
                             onChange={handleCustomTypeChange}
+                            placeholder="Especifica el tipo de dispositivo"
+                            style={{
+                                flex: 1,
+                                padding: '12px',
+                                border: '2px solid #dfe6e9',
+                                borderRadius: '8px',
+                                fontSize: '14px',
+                                outline: 'none',
+                                transition: 'border-color 0.3s ease'
+                            }}
+                            onFocus={(e) => e.target.style.borderColor = '#74b9ff'}
+                            onBlur={(e) => e.target.style.borderColor = '#dfe6e9'}
                         />
-                        <div className="input-group-append">
-                            <button 
-                                className="btn btn-primary" 
-                                onClick={handleCustomTypeSubmit}
-                            >
-                                Agregar
-                            </button>
-                        </div>
+                        <button
+                            onClick={handleCustomTypeSubmit}
+                            style={{
+                                background: '#fdcb6e',
+                                color: '#2d3436',
+                                border: 'none',
+                                padding: '12px 16px',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontSize: '14px',
+                                fontWeight: '500',
+                                transition: 'background-color 0.3s ease'
+                            }}
+                            onMouseOver={(e) => e.target.style.backgroundColor = '#f39c12'}
+                            onMouseOut={(e) => e.target.style.backgroundColor = '#fdcb6e'}
+                        >
+                            Agregar
+                        </button>
                     </div>
                 </div>
             )}

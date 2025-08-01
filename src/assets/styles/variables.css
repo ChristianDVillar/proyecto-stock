@@ -1,35 +1,65 @@
-/* Gengar Theme Colors */
+/* User-Friendly Color Scheme */
 :root {
-  /* Colores principales */
-  --color-shadow: #2E2E2E;      /* Negro profundo - Color principal para fondos oscuros */
-  --color-ghost: #D3D3D3;       /* Gris plateado - Color para elementos claros */
-  --color-poison: #800080;      /* Púrpura fuerte - Color de acento principal */
-  --color-poison-light: #9370DB; /* Púrpura más claro - Color de acento secundario */
-  --color-eyes: #FF0000;        /* Rojo brillante - Color para elementos de atención */
-  --color-eyes-dark: #DC143C;   /* Rojo oscuro - Color para hover/active */
+  /* Primary Colors - User-Friendly Palette */
+  --primary-color: #6c5ce7;    /* Purple-Blue for headers */
+  --secondary-color: #00b894;  /* Green for success actions */
+  --accent-color: #74b9ff;     /* Blue for interactive elements */
+  --warning-color: #fdcb6e;    /* Orange for secondary actions */
+  --danger-color: #e17055;     /* Red for stop/danger actions */
+  --info-color: #fd79a8;       /* Pink for info elements */
   
-  /* Sombras y efectos */
-  --shadow-normal: 0 4px 6px rgba(46, 46, 46, 0.1);
-  --shadow-hover: 0 6px 12px rgba(128, 0, 128, 0.2);
-  --glow-effect: 0 0 15px rgba(147, 112, 219, 0.3);
+  /* Background Colors */
+  --bg-primary: #ffffff;       /* White for cards */
+  --bg-secondary: #f8f9fa;     /* Light gray for main background */
+  --bg-tertiary: #e9ecef;      /* Light gray for borders */
   
-  /* Gradientes */
-  --gradient-dark: linear-gradient(135deg, var(--color-shadow) 0%, var(--color-poison) 100%);
-  --gradient-light: linear-gradient(135deg, var(--color-ghost) 0%, var(--color-poison-light) 100%);
-
+  /* Text Colors */
+  --text-primary: #2d3436;     /* Dark gray for main text */
+  --text-secondary: #636e72;   /* Medium gray for secondary text */
+  --text-light: #ffffff;       /* White for text on dark backgrounds */
+  
+  /* Interactive Colors */
+  --hover-primary: #5f3dc4;    /* Darker purple for hover */
+  --hover-secondary: #00a085;  /* Darker green for hover */
+  --hover-accent: #0984e3;     /* Darker blue for hover */
+  --hover-warning: #f39c12;    /* Darker orange for hover */
+  --hover-danger: #d63031;     /* Darker red for hover */
+  --hover-info: #e84393;       /* Darker pink for hover */
+  
+  /* Border Colors */
+  --border-primary: #dfe6e9;   /* Light gray for form borders */
+  --border-focus: #74b9ff;     /* Blue for focus states */
+  --border-success: #00a085;   /* Green for success borders */
+  
   /* Espaciado */
-  --spacing-xs: 0.25rem;
-  --spacing-sm: 0.5rem;
-  --spacing-md: 1rem;
-  --spacing-lg: 1.5rem;
-  --spacing-xl: 2rem;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  /* Fuentes */
+  --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  
+  /* Tamaños de fuente */
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
 
   /* Bordes */
   --border-radius-sm: 4px;
   --border-radius-md: 8px;
   --border-radius-lg: 12px;
 
-  /* Tipografía */
-  --font-family-base: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-family-code: source-code-pro, Menlo, Monaco, Consolas, monospace;
+  /* Sombras y efectos */
+  --shadow-normal: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-hover: 0 6px 12px rgba(108, 92, 231, 0.2);
+  --glow-effect: 0 0 15px rgba(116, 185, 255, 0.3);
+  
+  /* Gradientes */
+  --gradient-primary: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+  --gradient-success: linear-gradient(135deg, var(--secondary-color) 0%, var(--hover-secondary) 100%);
+  --gradient-warning: linear-gradient(135deg, var(--warning-color) 0%, var(--hover-warning) 100%);
 } 

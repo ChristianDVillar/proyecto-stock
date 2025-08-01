@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import authStore from '../services/AuthStore';
-import '../assets/styles/Login.css';
 
 const Login = () => {
     const [isLogin, setIsLogin] = useState(true);
@@ -11,13 +10,17 @@ const Login = () => {
     });
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isRedirecting, setIsRedirecting] = useState(false);
 
     useEffect(() => {
-        // Solo redirigir si estamos en /login y ya estamos autenticados
-        if (window.location.pathname === '/login' && authStore.isLoggedIn()) {
-            const userType = authStore.getUserType();
-            window.location.replace(userType === 'admin' ? '/admin' : '/');
-        }
+        const checkAuth = async () => {
+            // Solo redirigir si estamos en /login y ya estamos autenticados
+            if (window.location.pathname === '/login' && authStore.isLoggedIn()) {
+                const userType = authStore.getUserType();
+                window.location.replace(userType === 'admin' ? '/admin' : '/');
+            }
+        };
+        checkAuth();
     }, []);
 
     const handleInputChange = (e) => {
@@ -89,34 +92,43 @@ const Login = () => {
                 throw new Error(data.error || 'Error en la autenticación');
             }
 
-            // Obtener el token del header de Authorization
+            // Obtener el token del header de Authorization o del body
             const authHeader = response.headers.get('Authorization');
-            const token = authHeader ? authHeader.replace('Bearer ', '') : data.access_token;
+            console.log('Token en header:', authHeader);
+            console.log('Token en body:', data.access_token);
+
+            let token = null;
+            if (authHeader && authHeader.startsWith('Bearer ')) {
+                token = authHeader.substring(7);
+            } else if (data.access_token) {
+                token = data.access_token;
+            }
 
             if (!token) {
                 throw new Error('No se recibió el token de autenticación');
             }
 
-            // Intentar el login con el token recibido
+            console.log('Token obtenido:', token);
+
+            // Guardar en el store usando el método login
             const loginSuccess = await authStore.login(token, data.user.username, data.user.user_type);
             
             if (!loginSuccess) {
                 throw new Error('Error al guardar los datos de autenticación');
             }
 
-            // Verificar que el token sea válido
-            const isValid = await authStore.verifyToken();
-            if (!isValid) {
-                throw new Error('El token recibido no es válido');
-            }
+            console.log('Autenticación exitosa, redirigiendo...');
+            setIsRedirecting(true);
 
             // Redirigir según el tipo de usuario
-            window.location.replace(data.user.user_type === 'admin' ? '/admin' : '/');
+            const userType = data.user?.user_type || 'user';
+            setTimeout(() => {
+                window.location.replace(userType === 'admin' ? '/admin' : '/');
+            }, 1000);
+
         } catch (error) {
-            console.error('Login error:', error);
-            setError(error.message || 'Error en el inicio de sesión');
-            // Limpiar el estado de autenticación en caso de error
-            await authStore.clearState(true);
+            console.error('Error en autenticación:', error);
+            setError(error.message || 'Error en la autenticación');
         } finally {
             setIsLoading(false);
         }
@@ -132,67 +144,238 @@ const Login = () => {
         });
     };
 
+    if (isRedirecting) {
+        return (
+            <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                minHeight: '100vh',
+                backgroundColor: '#f8f9fa'
+            }}>
+                <div style={{
+                    textAlign: 'center',
+                    padding: '40px',
+                    backgroundColor: '#ffffff',
+                    borderRadius: '12px',
+                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                    border: '1px solid #e9ecef'
+                }}>
+                    <h2 style={{ color: '#2d3436', marginBottom: '20px' }}>
+                        ¡Autenticación Exitosa!
+                    </h2>
+                    <p style={{ color: '#636e72' }}>
+                        Redirigiendo...
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="login-container">
-            <form className="login-form" onSubmit={handleSubmit}>
-                <h2>{isLogin ? 'Iniciar Sesión' : 'Registrarse'}</h2>
-                
-                {error && <div className="error-message">{error}</div>}
-                
-                <div className="form-group">
-                    <label htmlFor="username">Usuario:</label>
-                    <input
-                        type="text"
-                        id="username"
-                        name="username"
-                        value={formData.username}
-                        onChange={handleInputChange}
-                        required
-                        disabled={isLoading}
-                    />
+        <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: '100vh',
+            backgroundColor: '#f8f9fa',
+            padding: '20px'
+        }}>
+            <div style={{
+                maxWidth: '400px',
+                width: '100%',
+                backgroundColor: '#ffffff',
+                borderRadius: '12px',
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                border: '1px solid #e9ecef',
+                padding: '40px'
+            }}>
+                <div style={{
+                    textAlign: 'center',
+                    marginBottom: '30px'
+                }}>
+                    <h2 style={{
+                        color: '#6c5ce7',
+                        fontSize: '28px',
+                        fontWeight: '600',
+                        marginBottom: '10px'
+                    }}>
+                        {isLogin ? 'Iniciar Sesión' : 'Registrarse'}
+                    </h2>
+                    <p style={{
+                        color: '#636e72',
+                        fontSize: '14px'
+                    }}>
+                        {isLogin ? 'Accede a tu cuenta' : 'Crea una nueva cuenta'}
+                    </p>
                 </div>
-                
-                <div className="form-group">
-                    <label htmlFor="password">Contraseña:</label>
-                    <input
-                        type="password"
-                        id="password"
-                        name="password"
-                        value={formData.password}
-                        onChange={handleInputChange}
-                        required
-                        disabled={isLoading}
-                    />
-                </div>
-                
-                {!isLogin && (
-                    <div className="form-group">
-                        <label htmlFor="confirmPassword">Confirmar Contraseña:</label>
+
+                <form onSubmit={handleSubmit} style={{ marginBottom: '20px' }}>
+                    <div style={{ marginBottom: '20px' }}>
+                        <label style={{
+                            display: 'block',
+                            marginBottom: '8px',
+                            color: '#2d3436',
+                            fontWeight: '500',
+                            fontSize: '14px'
+                        }}>
+                            Usuario:
+                        </label>
                         <input
-                            type="password"
-                            id="confirmPassword"
-                            name="confirmPassword"
-                            value={formData.confirmPassword}
+                            type="text"
+                            name="username"
+                            value={formData.username}
                             onChange={handleInputChange}
                             required
-                            disabled={isLoading}
+                            style={{
+                                width: '100%',
+                                padding: '12px',
+                                border: '2px solid #dfe6e9',
+                                borderRadius: '8px',
+                                fontSize: '14px',
+                                outline: 'none',
+                                transition: 'border-color 0.3s ease',
+                                boxSizing: 'border-box'
+                            }}
+                            onFocus={(e) => e.target.style.borderColor = '#74b9ff'}
+                            onBlur={(e) => e.target.style.borderColor = '#dfe6e9'}
                         />
                     </div>
-                )}
-                
-                <button type="submit" className="submit-button" disabled={isLoading}>
-                    {isLoading ? 'Procesando...' : (isLogin ? 'Iniciar Sesión' : 'Registrarse')}
-                </button>
-                
-                <button 
-                    type="button" 
-                    className="toggle-button" 
-                    onClick={toggleMode}
-                    disabled={isLoading}
-                >
-                    {isLogin ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Inicia sesión'}
-                </button>
-            </form>
+
+                    <div style={{ marginBottom: '20px' }}>
+                        <label style={{
+                            display: 'block',
+                            marginBottom: '8px',
+                            color: '#2d3436',
+                            fontWeight: '500',
+                            fontSize: '14px'
+                        }}>
+                            Contraseña:
+                        </label>
+                        <input
+                            type="password"
+                            name="password"
+                            value={formData.password}
+                            onChange={handleInputChange}
+                            required
+                            style={{
+                                width: '100%',
+                                padding: '12px',
+                                border: '2px solid #dfe6e9',
+                                borderRadius: '8px',
+                                fontSize: '14px',
+                                outline: 'none',
+                                transition: 'border-color 0.3s ease',
+                                boxSizing: 'border-box'
+                            }}
+                            onFocus={(e) => e.target.style.borderColor = '#74b9ff'}
+                            onBlur={(e) => e.target.style.borderColor = '#dfe6e9'}
+                        />
+                    </div>
+
+                    {!isLogin && (
+                        <div style={{ marginBottom: '20px' }}>
+                            <label style={{
+                                display: 'block',
+                                marginBottom: '8px',
+                                color: '#2d3436',
+                                fontWeight: '500',
+                                fontSize: '14px'
+                            }}>
+                                Confirmar Contraseña:
+                            </label>
+                            <input
+                                type="password"
+                                name="confirmPassword"
+                                value={formData.confirmPassword}
+                                onChange={handleInputChange}
+                                required
+                                style={{
+                                    width: '100%',
+                                    padding: '12px',
+                                    border: '2px solid #dfe6e9',
+                                    borderRadius: '8px',
+                                    fontSize: '14px',
+                                    outline: 'none',
+                                    transition: 'border-color 0.3s ease',
+                                    boxSizing: 'border-box'
+                                }}
+                                onFocus={(e) => e.target.style.borderColor = '#74b9ff'}
+                                onBlur={(e) => e.target.style.borderColor = '#dfe6e9'}
+                            />
+                        </div>
+                    )}
+
+                    {error && (
+                        <div style={{
+                            backgroundColor: 'rgba(225, 112, 85, 0.1)',
+                            border: '1px solid #e17055',
+                            color: '#e17055',
+                            padding: '12px',
+                            borderRadius: '8px',
+                            marginBottom: '20px',
+                            fontSize: '14px'
+                        }}>
+                            {error}
+                        </div>
+                    )}
+
+                    <button
+                        type="submit"
+                        disabled={isLoading}
+                        style={{
+                            width: '100%',
+                            padding: '14px',
+                            backgroundColor: isLoading ? '#636e72' : '#00b894',
+                            color: '#ffffff',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontSize: '16px',
+                            fontWeight: '600',
+                            cursor: isLoading ? 'not-allowed' : 'pointer',
+                            transition: 'background-color 0.3s ease',
+                            textTransform: 'uppercase',
+                            letterSpacing: '1px'
+                        }}
+                        onMouseOver={(e) => {
+                            if (!isLoading) {
+                                e.target.style.backgroundColor = '#00a085';
+                            }
+                        }}
+                        onMouseOut={(e) => {
+                            if (!isLoading) {
+                                e.target.style.backgroundColor = '#00b894';
+                            }
+                        }}
+                    >
+                        {isLoading ? 'Procesando...' : (isLogin ? 'Iniciar Sesión' : 'Registrarse')}
+                    </button>
+                </form>
+
+                <div style={{
+                    textAlign: 'center',
+                    paddingTop: '20px',
+                    borderTop: '1px solid #e9ecef'
+                }}>
+                    <button
+                        type="button"
+                        onClick={toggleMode}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#74b9ff',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            textDecoration: 'underline',
+                            transition: 'color 0.3s ease'
+                        }}
+                        onMouseOver={(e) => e.target.style.color = '#0984e3'}
+                        onMouseOut={(e) => e.target.style.color = '#74b9ff'}
+                    >
+                        {isLogin ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Inicia sesión'}
+                    </button>
+                </div>
+            </div>
         </div>
     );
 };

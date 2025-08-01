@@ -1,92 +1,106 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import authStore from '../services/AuthStore';
-import '../assets/styles/Header.css';
 
-const Header = ({ onNavigate, isAdmin }) => {
-    const [userName, setUserName] = useState(authStore.getUserName());
-    const [showDropdown, setShowDropdown] = useState(false);
-    const [currentTime, setCurrentTime] = useState(new Date());
+const Header = ({ isLoggedIn, isAdmin }) => {
+    const navigate = useNavigate();
 
-    useEffect(() => {
-        const handleAuthChange = () => {
-            setUserName(authStore.getUserName());
-        };
-
-        authStore.on('change', handleAuthChange);
-
-        // Actualizar la hora cada segundo
-        const timer = setInterval(() => {
-            setCurrentTime(new Date());
-        }, 1000);
-
-        return () => {
-            authStore.removeListener('change', handleAuthChange);
-            clearInterval(timer);
-        };
-    }, []);
-
-    const handleLogout = () => {
-        authStore.logout();
-        setShowDropdown(false);
+    const handleLogout = async () => {
+        await authStore.clearState(true);
+        navigate('/login');
     };
 
-    const handleNavigation = (view) => {
-        onNavigate(view);
-        setShowDropdown(false);
-    };
+    if (!isLoggedIn) return null;
 
     return (
-        <header className="header">
-            <div className="logo">Control de Stock</div>
-            <nav className="nav">
-                <button 
-                    className="nav-button" 
-                    onClick={() => handleNavigation('nuevo-inventario')}
-                >
-                    Nuevo Inventario
-                </button>
-                <button 
-                    className="nav-button" 
-                    onClick={() => handleNavigation('consultar')}
-                >
-                    Consultar Inventario
-                </button>
-                {isAdmin && (
-                    <button 
-                        className="nav-button" 
-                        onClick={() => handleNavigation('usuarios')}
+        <header style={{
+            background: '#6c5ce7',
+            color: '#ffffff',
+            padding: '16px 24px',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+            position: 'sticky',
+            top: 0,
+            zIndex: 1000
+        }}>
+            <nav style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                maxWidth: '1200px',
+                margin: '0 auto'
+            }}>
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '24px'
+                }}>
+                    <Link 
+                        to="/nuevo-inventario" 
+                        style={{
+                            color: '#ffffff',
+                            textDecoration: 'none',
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            transition: 'background-color 0.3s ease',
+                            fontWeight: '500'
+                        }}
+                        onMouseOver={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
+                        onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
                     >
-                        Gestión de Usuarios
-                    </button>
-                )}
-                <a href="mailto:christianvillar@live.com.ar" className="nav-button">
-                    Contacto
-                </a>
-                <div className="date-time">
-                    {currentTime.toLocaleString()}
-                </div>
-                <div className="user-menu">
-                    <button 
-                        className="user-button"
-                        onClick={() => setShowDropdown(!showDropdown)}
+                        Nuevo Inventario
+                    </Link>
+                    <Link 
+                        to="/consultar-inventario" 
+                        style={{
+                            color: '#ffffff',
+                            textDecoration: 'none',
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            transition: 'background-color 0.3s ease',
+                            fontWeight: '500'
+                        }}
+                        onMouseOver={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
+                        onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
                     >
-                        {userName}
-                    </button>
-                    {showDropdown && (
-                        <div className="dropdown-menu">
-                            {isAdmin && (
-                                <button 
-                                    className="admin-option"
-                                    onClick={() => handleNavigation('usuarios')}
-                                >
-                                    Gestión de Usuarios
-                                </button>
-                            )}
-                            <button onClick={() => handleNavigation('profile')}>Mi Perfil</button>
-                            <button onClick={handleLogout}>Cerrar Sesión</button>
-                        </div>
+                        Consultar Inventario
+                    </Link>
+                    {isAdmin && (
+                        <Link 
+                            to="/admin" 
+                            style={{
+                                color: '#ffffff',
+                                textDecoration: 'none',
+                                padding: '8px 16px',
+                                borderRadius: '6px',
+                                transition: 'background-color 0.3s ease',
+                                fontWeight: '500'
+                            }}
+                            onMouseOver={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
+                            onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+                        >
+                            Administración
+                        </Link>
                     )}
                 </div>
+                
+                <button 
+                    onClick={handleLogout} 
+                    style={{
+                        background: '#e17055',
+                        color: '#ffffff',
+                        border: 'none',
+                        padding: '8px 16px',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        transition: 'background-color 0.3s ease'
+                    }}
+                    onMouseOver={(e) => e.target.style.backgroundColor = '#d63031'}
+                    onMouseOut={(e) => e.target.style.backgroundColor = '#e17055'}
+                >
+                    Cerrar Sesión
+                </button>
             </nav>
         </header>
     );
