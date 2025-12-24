@@ -2,6 +2,10 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import or_, func
 from .models import db, Stock, StockMovement, MaintenanceRecord, StockStatusEnum, StockTypeEnum, CustomStockType, DeviceTypeEnum, CustomDeviceType
+from .utils import (
+    validate_barcode, validate_inventario, validate_modelo, validate_cantidad,
+    validate_request_data, error_handler
+)
 from datetime import datetime
 import boto3
 import os
@@ -103,42 +107,56 @@ def get_device_types():
 
 @api.route('/stock', methods=['POST'])
 @jwt_required()
+@error_handler
 def create_stock():
-    try:
-        current_user_id = get_jwt_identity()
-        print(f"ID de usuario actual: {current_user_id}")  # Debug log
-        
-        if current_user_id is None:
-            return jsonify({
-                'error': 'Usuario no autenticado',
-                'message': 'La sesión ha expirado o no es válida. Por favor, inicie sesión nuevamente.'
-            }), 401
+    current_user_id = get_jwt_identity()
+    
+    if current_user_id is None:
+        return jsonify({
+            'error': 'Usuario no autenticado',
+            'message': 'La sesión ha expirado o no es válida. Por favor, inicie sesión nuevamente.'
+        }), 401
 
-        data = request.get_json()
-        print("Datos recibidos:", data)  # Debug log
+    data = request.get_json()
+    
+    # Validar campos requeridos
+    required_fields = ['barcode', 'inventario', 'dispositivo', 'modelo']
+    is_valid, error_msg = validate_request_data(required_fields, data)
+    if not is_valid:
+        return jsonify({
+            'error': 'Datos inválidos',
+            'message': error_msg
+        }), 400
 
-        if not data:
-            return jsonify({
-                'error': 'No se recibieron datos',
-                'message': 'No se recibieron datos en el cuerpo de la petición.'
-            }), 400
+    # Validar formato de campos
+    barcode_valid, barcode_error = validate_barcode(data['barcode'])
+    if not barcode_valid:
+        return jsonify({
+            'error': 'Código de barras inválido',
+            'message': barcode_error
+        }), 400
 
-        required_fields = ['barcode', 'inventario', 'dispositivo', 'modelo']
-        missing_fields = [field for field in required_fields if not data.get(field)]
-        if missing_fields:
-            return jsonify({
-                'error': 'Campos requeridos faltantes',
-                'message': f'Faltan los siguientes campos requeridos: {", ".join(missing_fields)}',
-                'missing_fields': missing_fields
-            }), 400
+    inventario_valid, inventario_error = validate_inventario(data['inventario'])
+    if not inventario_valid:
+        return jsonify({
+            'error': 'Código de inventario inválido',
+            'message': inventario_error
+        }), 400
 
-        # Validar código de barras único
-        existing_stock = Stock.query.filter_by(barcode=data['barcode']).first()
-        if existing_stock:
-            return jsonify({
-                'error': 'Código de barras duplicado',
-                'message': 'El código de barras ya existe en la base de datos.'
-            }), 400
+    modelo_valid, modelo_error = validate_modelo(data['modelo'])
+    if not modelo_valid:
+        return jsonify({
+            'error': 'Modelo inválido',
+            'message': modelo_error
+        }), 400
+
+    # Validar código de barras único
+    existing_stock = Stock.query.filter_by(barcode=data['barcode']).first()
+    if existing_stock:
+        return jsonify({
+            'error': 'Código de barras duplicado',
+            'message': 'El código de barras ya existe en la base de datos.'
+        }), 400
 
         # Procesar el tipo de dispositivo
         device_type = data.get('dispositivo', '').lower()
@@ -173,18 +191,14 @@ def create_stock():
                 }), 400
 
         # Validar cantidad
-        try:
-            cantidad = int(data.get('cantidad', 1))
-            if cantidad <= 0:
-                return jsonify({
-                    'error': 'Cantidad inválida',
-                    'message': 'La cantidad debe ser un número mayor que 0.'
-                }), 400
-        except ValueError:
+        cantidad_valid, cantidad_error = validate_cantidad(data.get('cantidad', 1))
+        if not cantidad_valid:
             return jsonify({
                 'error': 'Cantidad inválida',
-                'message': 'La cantidad debe ser un número válido.'
+                'message': cantidad_error
             }), 400
+        
+        cantidad = int(data.get('cantidad', 1))
 
         # Crear el nuevo stock
         new_stock = Stock(
@@ -314,6 +328,11 @@ def search_stock():
         stocktype = request.args.get('type')
         status = request.args.get('status')
         location = request.args.get('location')
+        
+        # Paginación
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+        per_page = min(per_page, 100)  # Limitar máximo a 100
 
         stock_query = Stock.query
 
@@ -322,22 +341,45 @@ def search_stock():
                 or_(
                     Stock.barcode.ilike(f'%{query}%'),
                     Stock.inventario.ilike(f'%{query}%'),
-                    Stock.dispositivo.ilike(f'%{query}%'),
                     Stock.modelo.ilike(f'%{query}%'),
                     Stock.descripcion.ilike(f'%{query}%')
                 )
             )
 
         if stocktype:
-            stock_query = stock_query.filter(Stock.stocktype == stocktype)
+            try:
+                # Intentar convertir a enum
+                if stocktype.startswith('custom_'):
+                    custom_id = int(stocktype.split('_')[1])
+                    custom_type = CustomStockType.query.get(custom_id)
+                    if custom_type:
+                        stock_query = stock_query.filter(Stock.stocktype == StockTypeEnum.otro)
+                else:
+                    stock_type_enum = StockTypeEnum[stocktype]
+                    stock_query = stock_query.filter(Stock.stocktype == stock_type_enum)
+            except (KeyError, ValueError, IndexError):
+                pass  # Ignorar tipos inválidos
         
         if status:
-            stock_query = stock_query.filter(Stock.status == status)
+            try:
+                status_enum = StockStatusEnum[status]
+                stock_query = stock_query.filter(Stock.status == status_enum)
+            except KeyError:
+                pass  # Ignorar estados inválidos
         
         if location:
-            stock_query = stock_query.filter(Stock.location == location)
+            stock_query = stock_query.filter(Stock.location.ilike(f'%{location}%'))
 
-        stocks = stock_query.order_by(Stock.updated_at.desc()).limit(50).all()
+        # Contar total antes de paginar
+        total_items = stock_query.count()
+        total_pages = (total_items + per_page - 1) // per_page
+
+        # Aplicar paginación
+        stocks = stock_query.order_by(Stock.updated_at.desc()).paginate(
+            page=page,
+            per_page=per_page,
+            error_out=False
+        ).items
 
         return jsonify({
             'stocks': [{
@@ -349,11 +391,21 @@ def search_stock():
                 'cantidad': s.cantidad,
                 'status': s.status.value,
                 'location': s.location
-            } for s in stocks]
+            } for s in stocks],
+            'total_items': total_items,
+            'total_pages': total_pages,
+            'current_page': page,
+            'per_page': per_page
         }), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"Error in search_stock: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({
+            'error': 'Error al buscar stock',
+            'message': str(e)
+        }), 500
 
 @api.route('/stock/<int:stock_id>/movement', methods=['POST'])
 @jwt_required()

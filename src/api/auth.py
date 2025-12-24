@@ -5,6 +5,7 @@ from flask_jwt_extended import (
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from .models import db, User, UserTypeEnum
+from .utils import validate_username, validate_password, validate_request_data, error_handler
 import datetime
 
 auth = Blueprint('auth', __name__)
@@ -57,20 +58,29 @@ def debug_session():
         return jsonify({'error': str(e)}), 500
 
 @auth.route('/register', methods=['POST'])
+@error_handler
 def register():
-    try:
-        data = request.get_json()
-        print(f"Register attempt with data: {data}")  # Debug log
-        
-        if not data:
-            return jsonify({'error': 'No se recibieron datos'}), 400
-            
-        if not data.get('username') or not data.get('password'):
-            return jsonify({'error': 'Se requieren nombre de usuario y contraseña'}), 400
+    data = request.get_json()
+    
+    # Validar campos requeridos
+    required_fields = ['username', 'password']
+    is_valid, error_msg = validate_request_data(required_fields, data)
+    if not is_valid:
+        return jsonify({'error': error_msg}), 400
 
-        existing_user = User.query.filter_by(username=data['username']).first()
-        if existing_user:
-            return jsonify({'error': 'El nombre de usuario ya existe'}), 400
+    # Validar formato de username
+    username_valid, username_error = validate_username(data['username'])
+    if not username_valid:
+        return jsonify({'error': username_error}), 400
+
+    # Validar formato de password
+    password_valid, password_error = validate_password(data['password'])
+    if not password_valid:
+        return jsonify({'error': password_error}), 400
+
+    existing_user = User.query.filter_by(username=data['username']).first()
+    if existing_user:
+        return jsonify({'error': 'El nombre de usuario ya existe'}), 400
 
         # Crear nuevo usuario como usuario regular
         new_user = User(
@@ -80,26 +90,21 @@ def register():
             is_active=True
         )
 
-        try:
-            db.session.add(new_user)
-            db.session.commit()
-            print(f"Usuario creado exitosamente: {new_user.username}")  # Debug log
-            return jsonify({
-                'message': 'Usuario registrado exitosamente',
-                'user': {
-                    'id': new_user.id,
-                    'username': new_user.username,
-                    'user_type': new_user.user_type.value
-                }
-            }), 201
-        except Exception as e:
-            db.session.rollback()
-            print(f"Error al guardar usuario en la base de datos: {str(e)}")  # Debug log
-            return jsonify({'error': 'Error al crear el usuario en la base de datos'}), 500
-
+    try:
+        db.session.add(new_user)
+        db.session.commit()
+        return jsonify({
+            'message': 'Usuario registrado exitosamente',
+            'user': {
+                'id': new_user.id,
+                'username': new_user.username,
+                'user_type': new_user.user_type.value
+            }
+        }), 201
     except Exception as e:
-        print(f"Error en registro: {str(e)}")  # Debug log
-        return jsonify({'error': str(e)}), 500
+        db.session.rollback()
+        print(f"Error al guardar usuario en la base de datos: {str(e)}")
+        return jsonify({'error': 'Error al crear el usuario en la base de datos'}), 500
 
 @auth.route('/login', methods=['POST'])
 def login():

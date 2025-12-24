@@ -17,6 +17,7 @@ from werkzeug.security import generate_password_hash
 from sqlalchemy import event
 from sqlalchemy.orm import scoped_session, sessionmaker
 from flask_login import LoginManager, current_user, UserMixin
+from flasgger import Swagger
 
 # Cargar variables de entorno
 load_dotenv()
@@ -30,11 +31,12 @@ if not os.path.exists(instance_path):
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
 
-# Configuración de CORS
+# Configuración de CORS desde variables de entorno
+cors_origins = os.environ.get('CORS_ORIGINS', 'http://localhost:3000,http://localhost:5000').split(',')
 CORS(app, 
      resources={
         r"/*": {
-            "origins": ["http://localhost:3000", "http://localhost:5000"],
+            "origins": cors_origins,
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization", "Accept", "X-Requested-With"],
             "expose_headers": ["Content-Type", "Authorization"],
@@ -46,18 +48,19 @@ CORS(app,
      supports_credentials=True
 )
 
-# Configuración de JWT
-app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'your-secret-key-here')
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=1)
+# Configuración de JWT desde variables de entorno
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', os.environ.get('SECRET_KEY', 'your-secret-key-here'))
+jwt_expires_days = int(os.environ.get('JWT_ACCESS_TOKEN_EXPIRES_DAYS', '1'))
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=jwt_expires_days)
 app.config['JWT_TOKEN_LOCATION'] = ['headers', 'cookies']
 app.config['JWT_HEADER_NAME'] = 'Authorization'
 app.config['JWT_HEADER_TYPE'] = 'Bearer'
 app.config['JWT_ERROR_MESSAGE_KEY'] = 'error'
 app.config['JWT_ACCESS_COOKIE_NAME'] = 'access_token_cookie'
 app.config['JWT_COOKIE_CSRF_PROTECT'] = False
-app.config['JWT_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
+app.config['JWT_COOKIE_SECURE'] = os.environ.get('JWT_COOKIE_SECURE', 'False').lower() == 'true'
 app.config['JWT_SESSION_COOKIE'] = False
-app.config['JWT_COOKIE_SAMESITE'] = 'Lax'
+app.config['JWT_COOKIE_SAMESITE'] = os.environ.get('JWT_COOKIE_SAMESITE', 'Lax')
 
 jwt = JWTManager(app)
 
@@ -121,9 +124,12 @@ def unauthorized_callback(error_string):
         'message': f'No se proporcionó un token válido: {error_string}'
     }), 401
 
-# Configuración de la base de datos
-db_path = os.path.join(instance_path, 'mi_base_datos.db')
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+# Configuración de la base de datos desde variables de entorno
+database_uri = os.environ.get('DATABASE_URI')
+if not database_uri:
+    db_path = os.path.join(instance_path, 'mi_base_datos.db')
+    database_uri = f'sqlite:///{db_path}'
+app.config['SQLALCHEMY_DATABASE_URI'] = database_uri
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_pre_ping': True,
@@ -146,6 +152,49 @@ def teardown_request(exception=None):
     if hasattr(g, 'session'):
         g.session.close()
         delattr(g, 'session')
+
+# Configurar Swagger para documentación de API
+swagger_config = {
+    "headers": [],
+    "specs": [
+        {
+            "endpoint": 'apispec',
+            "route": '/apispec.json',
+            "rule_filter": lambda rule: True,
+            "model_filter": lambda tag: True,
+        }
+    ],
+    "static_url_path": "/flasgger_static",
+    "swagger_ui": True,
+    "specs_route": "/api-docs"
+}
+
+swagger_template = {
+    "swagger": "2.0",
+    "info": {
+        "title": "Proyecto Stock API",
+        "description": "API para gestión de inventario",
+        "version": os.environ.get('APP_VERSION', '0.1.0'),
+        "contact": {
+            "name": "API Support"
+        }
+    },
+    "securityDefinitions": {
+        "Bearer": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header",
+            "description": "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\""
+        }
+    },
+    "security": [
+        {
+            "Bearer": []
+        }
+    ]
+}
+
+swagger = Swagger(app, config=swagger_config, template=swagger_template)
 
 # Registrar los blueprints
 app.register_blueprint(api, url_prefix='/api')
