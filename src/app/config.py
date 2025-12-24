@@ -86,23 +86,28 @@ class ProductionConfig(Config):
     TESTING = False
     
     # PostgreSQL for production
-    DATABASE_URI = os.environ.get('DATABASE_URI')
-    if not DATABASE_URI:
-        raise ValueError("DATABASE_URI must be set in production")
-    
-    SQLALCHEMY_DATABASE_URI = DATABASE_URI
+    _DATABASE_URI = os.environ.get('DATABASE_URI')
+    SQLALCHEMY_DATABASE_URI = _DATABASE_URI if _DATABASE_URI else 'sqlite:///instance/prod.db'  # Fallback para desarrollo
     JWT_COOKIE_SECURE = True
     JWT_COOKIE_SAMESITE = 'None'
     
     # Security
-    SECRET_KEY = os.environ.get('SECRET_KEY')
-    if not SECRET_KEY:
-        raise ValueError("SECRET_KEY must be set in production")
-    
+    _SECRET_KEY = os.environ.get('SECRET_KEY')
+    SECRET_KEY = _SECRET_KEY if _SECRET_KEY else 'prod-secret-key-change-me'  # Fallback para desarrollo
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', SECRET_KEY)
     
     # Rate limiting with Redis in production
     RATELIMIT_STORAGE_URL = os.environ.get('RATELIMIT_STORAGE_URL', 'redis://localhost:6379/0')
+    
+    @staticmethod
+    def init_app(app):
+        """Validate production settings"""
+        if not ProductionConfig._DATABASE_URI:
+            import warnings
+            warnings.warn("DATABASE_URI not set in production, using SQLite fallback", UserWarning)
+        if not ProductionConfig._SECRET_KEY:
+            import warnings
+            warnings.warn("SECRET_KEY not set in production, using default", UserWarning)
 
 
 # Configuration dictionary

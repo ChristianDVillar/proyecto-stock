@@ -5,7 +5,7 @@ Creates and configures the Flask application
 from flask import Flask
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
-from flask_migrate import Migrate
+# from flask_migrate import Migrate  # Temporalmente deshabilitado por compatibilidad Python 3.13
 from flask_admin import Admin
 from flask_login import LoginManager
 from flasgger import Swagger
@@ -27,17 +27,17 @@ def create_app(config_name='development'):
     app = Flask(__name__)
     
     # Load configuration
-    config = Config.get_config(config_name)
-    app.config.from_object(config)
+    config_class = Config.get_config(config_name)
+    app.config.from_object(config_class)
     
     # Initialize extensions
     db.init_app(app)
-    Migrate(app, db)
+    # Migrate(app, db)  # Temporalmente deshabilitado
     
     # Setup CORS
     CORS(app, 
          resources={r"/*": {
-             "origins": config.CORS_ORIGINS,
+             "origins": config_class.CORS_ORIGINS,
              "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
              "allow_headers": ["Content-Type", "Authorization", "Accept", "X-Requested-With"],
              "expose_headers": ["Content-Type", "Authorization"],

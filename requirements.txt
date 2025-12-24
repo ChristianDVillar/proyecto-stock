@@ -6,7 +6,7 @@ Flask-Limiter==3.5.0
 python-dotenv==1.0.0
 boto3==1.34.0
 Pillow==10.2.0
-SQLAlchemy==2.0.25
+SQLAlchemy==2.0.45
 Werkzeug==3.0.1
 flask-swagger-ui==4.11.1
 flasgger==0.9.7.1

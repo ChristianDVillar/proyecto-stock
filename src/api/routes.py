@@ -107,7 +107,6 @@ def get_device_types():
 
 @api.route('/stock', methods=['POST'])
 @jwt_required()
-@error_handler
 def create_stock():
     current_user_id = get_jwt_identity()
     
@@ -158,113 +157,107 @@ def create_stock():
             'message': 'El código de barras ya existe en la base de datos.'
         }), 400
 
-        # Procesar el tipo de dispositivo
-        device_type = data.get('dispositivo', '').lower()
-        custom_type = None
-        device_type_enum = None
+    # Procesar el tipo de dispositivo
+    device_type = data.get('dispositivo', '').lower()
+    custom_type = None
+    device_type_enum = None
 
-        try:
-            # Intentar obtener el tipo del enum
-            device_type_enum = StockTypeEnum[device_type]
-        except KeyError:
-            if device_type.startswith('custom_'):
-                # Es un tipo personalizado existente
-                try:
-                    custom_type_id = int(device_type.split('_')[1])
-                    custom_type = CustomStockType.query.get(custom_type_id)
-                    if not custom_type:
-                        return jsonify({
-                            'error': 'Tipo personalizado no encontrado',
-                            'message': 'El tipo personalizado seleccionado no existe.'
-                        }), 400
-                    device_type_enum = StockTypeEnum.otro
-                except (IndexError, ValueError):
+    try:
+        # Intentar obtener el tipo del enum
+        device_type_enum = StockTypeEnum[device_type]
+    except KeyError:
+        if device_type.startswith('custom_'):
+            # Es un tipo personalizado existente
+            try:
+                custom_type_id = int(device_type.split('_')[1])
+                custom_type = CustomStockType.query.get(custom_type_id)
+                if not custom_type:
                     return jsonify({
-                        'error': 'Formato de tipo personalizado inválido',
-                        'message': 'El formato del tipo personalizado es inválido.'
+                        'error': 'Tipo personalizado no encontrado',
+                        'message': 'El tipo personalizado seleccionado no existe.'
                     }), 400
-            else:
+                device_type_enum = StockTypeEnum.otro
+            except (IndexError, ValueError):
                 return jsonify({
-                    'error': 'Tipo de dispositivo inválido',
-                    'message': f'El tipo de dispositivo "{device_type}" no es válido.',
-                    'valid_types': [t.name for t in StockTypeEnum]
+                    'error': 'Formato de tipo personalizado inválido',
+                    'message': 'El formato del tipo personalizado es inválido.'
                 }), 400
-
-        # Validar cantidad
-        cantidad_valid, cantidad_error = validate_cantidad(data.get('cantidad', 1))
-        if not cantidad_valid:
+        else:
             return jsonify({
-                'error': 'Cantidad inválida',
-                'message': cantidad_error
+                'error': 'Tipo de dispositivo inválido',
+                'message': f'El tipo de dispositivo "{device_type}" no es válido.',
+                'valid_types': [t.name for t in StockTypeEnum]
             }), 400
+
+    # Validar cantidad
+    cantidad_valid, cantidad_error = validate_cantidad(data.get('cantidad', 1))
+    if not cantidad_valid:
+        return jsonify({
+            'error': 'Cantidad inválida',
+            'message': cantidad_error
+        }), 400
+    
+    cantidad = int(data.get('cantidad', 1))
+
+    # Crear el nuevo stock
+    new_stock = Stock(
+        barcode=data['barcode'],
+        inventario=data['inventario'],
+        dispositivo=device_type_enum,
+        modelo=data['modelo'],
+        descripcion=data.get('descripcion', ''),
+        cantidad=cantidad,
+        stocktype=device_type_enum,
+        status=StockStatusEnum.disponible,
+        location=data.get('location', 'default'),
+        serial_number=data.get('serial_number'),
+        purchase_date=datetime.strptime(data['purchase_date'], '%Y-%m-%d').date() if data.get('purchase_date') else None,
+        warranty_expiry=datetime.strptime(data['warranty_expiry'], '%Y-%m-%d').date() if data.get('warranty_expiry') else None,
+        created_by=current_user_id
+    )
+
+    # Crear el movimiento inicial
+    movement = StockMovement(
+        user_id=current_user_id,
+        quantity=cantidad,
+        movement_type='entrada',
+        to_location=data.get('location', 'default'),
+        notes='Registro inicial de inventario'
+    )
+
+    try:
+        # Agregar el nuevo stock a la sesión
+        db.session.add(new_stock)
+        db.session.flush()
+
+        # Asociar el movimiento con el stock
+        movement.stock_id = new_stock.id
+        db.session.add(movement)
         
-        cantidad = int(data.get('cantidad', 1))
+        # Confirmar la transacción
+        db.session.commit()
+        
+        response_data = {
+            'message': 'Stock creado exitosamente',
+            'id': new_stock.id,
+            'barcode': new_stock.barcode
+        }
 
-        # Crear el nuevo stock
-        new_stock = Stock(
-            barcode=data['barcode'],
-            inventario=data['inventario'],
-            dispositivo=device_type_enum,
-            modelo=data['modelo'],
-            descripcion=data.get('descripcion', ''),
-            cantidad=cantidad,
-            stocktype=device_type_enum,
-            status=StockStatusEnum.disponible,
-            location=data.get('location', 'default'),
-            serial_number=data.get('serial_number'),
-            purchase_date=datetime.strptime(data['purchase_date'], '%Y-%m-%d').date() if data.get('purchase_date') else None,
-            warranty_expiry=datetime.strptime(data['warranty_expiry'], '%Y-%m-%d').date() if data.get('warranty_expiry') else None,
-            created_by=current_user_id
-        )
-
-        # Crear el movimiento inicial
-        movement = StockMovement(
-            user_id=current_user_id,
-            quantity=cantidad,
-            movement_type='entrada',
-            to_location=data.get('location', 'default'),
-            notes='Registro inicial de inventario'
-        )
-
-        try:
-            # Usar una nueva sesión para esta transacción
-            session = db.session
-            session.add(new_stock)
-            session.flush()
-
-            # Asociar el movimiento con el stock
-            movement.stock_id = new_stock.id
-            session.add(movement)
-            
-            # Confirmar la transacción
-            session.commit()
-            
-            response_data = {
-                'message': 'Stock creado exitosamente',
-                'id': new_stock.id,
-                'barcode': new_stock.barcode
+        if custom_type:
+            response_data['custom_type'] = {
+                'id': custom_type.id,
+                'name': custom_type.name
             }
 
-            if custom_type:
-                response_data['custom_type'] = {
-                    'id': custom_type.id,
-                    'name': custom_type.name
-                }
-
-            return jsonify(response_data), 201
-
-        except Exception as e:
-            session.rollback()
-            print(f"Error en la transacción: {str(e)}")
-            return jsonify({
-                'error': 'Error al crear el stock',
-                'message': str(e)
-            }), 500
+        return jsonify(response_data), 201
 
     except Exception as e:
-        print(f"Error general: {str(e)}")
+        db.session.rollback()
+        print(f"Error en la transacción: {str(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
         return jsonify({
-            'error': 'Error del servidor',
+            'error': 'Error al crear el stock',
             'message': str(e)
         }), 500
 

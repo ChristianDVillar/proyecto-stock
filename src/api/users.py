@@ -72,10 +72,20 @@ def create_user():
         if User.query.filter_by(username=data['username']).first():
             return jsonify({'error': 'El nombre de usuario ya existe'}), 400
 
+        # Mapear 'usuario' a 'user' para compatibilidad con el frontend
+        user_type_str = data.get('user_type', 'usuario')
+        if user_type_str == 'usuario':
+            user_type_str = 'user'
+        
+        try:
+            user_type_enum = UserTypeEnum[user_type_str]
+        except KeyError:
+            return jsonify({'error': f'Tipo de usuario inválido: {user_type_str}'}), 400
+        
         new_user = User(
             username=data['username'],
             password=generate_password_hash(data['password']),
-            user_type=UserTypeEnum[data.get('user_type', 'usuario')],
+            user_type=user_type_enum,
             is_active=data.get('is_active', True)
         )
 
@@ -88,6 +98,9 @@ def create_user():
         }), 201
     except Exception as e:
         db.session.rollback()
+        import traceback
+        print(f"Error in create_user: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
 
 @users.route('/<int:user_id>', methods=['PUT'])
@@ -115,7 +128,14 @@ def update_user(user_id):
             user.password = generate_password_hash(data['password'])
 
         if 'user_type' in data:
-            user.user_type = UserTypeEnum[data['user_type']]
+            # Mapear 'usuario' a 'user' para compatibilidad con el frontend
+            user_type_str = data['user_type']
+            if user_type_str == 'usuario':
+                user_type_str = 'user'
+            try:
+                user.user_type = UserTypeEnum[user_type_str]
+            except KeyError:
+                return jsonify({'error': f'Tipo de usuario inválido: {user_type_str}'}), 400
 
         if 'is_active' in data:
             user.is_active = data['is_active']

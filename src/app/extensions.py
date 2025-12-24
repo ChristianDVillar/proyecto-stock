@@ -15,5 +15,5 @@ limiter = Limiter(
     default_limits=["200 per day", "50 per hour"]
 )
 login_manager = LoginManager()
-admin = Admin(name='Panel de Administración', template_mode='bootstrap3', url='/admin')
+admin = Admin(name='Panel de Administración', url='/admin')
 
