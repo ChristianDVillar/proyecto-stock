@@ -1,5 +1,17 @@
 # src/app.py
-import os 
+# DEPRECATED: This file is kept for backward compatibility
+# New entry point: src/run.py
+# New structure: src/app/__init__.py (Application Factory)
+
+import os
+import warnings
+
+warnings.warn(
+    "app.py is deprecated. Use 'python src/run.py' instead. "
+    "The new structure uses Application Factory Pattern in src/app/",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 from flask import Flask, jsonify, g, redirect, url_for, request
 from flask_admin import Admin
@@ -18,6 +30,8 @@ from sqlalchemy import event
 from sqlalchemy.orm import scoped_session, sessionmaker
 from flask_login import LoginManager, current_user, UserMixin
 from flasgger import Swagger
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 # Setup logging
 try:
@@ -37,6 +51,14 @@ if not os.path.exists(instance_path):
 # Configuración de la aplicación Flask
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
+
+# Rate Limiting
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri=os.environ.get('RATELIMIT_STORAGE_URL', 'memory://')
+)
 
 # Configuración de CORS desde variables de entorno
 cors_origins = os.environ.get('CORS_ORIGINS', 'http://localhost:3000,http://localhost:5000').split(',')
@@ -203,10 +225,14 @@ swagger_template = {
 
 swagger = Swagger(app, config=swagger_config, template=swagger_template)
 
-# Registrar los blueprints
+# Registrar los blueprints con rate limiting
 app.register_blueprint(api, url_prefix='/api')
 app.register_blueprint(auth, url_prefix='/api/auth')
 app.register_blueprint(users, url_prefix='/api/users')
+
+# Apply rate limiting to auth endpoints
+limiter.limit("5 per minute")(auth)
+limiter.limit("100 per hour")(api)
 
 # Crear todas las tablas si no existen
 with app.app_context():
