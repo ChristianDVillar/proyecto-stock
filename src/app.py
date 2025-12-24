@@ -19,6 +19,13 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 from flask_login import LoginManager, current_user, UserMixin
 from flasgger import Swagger
 
+# Setup logging
+try:
+    from api.logger import logger
+except ImportError:
+    import logging
+    logger = logging.getLogger(__name__)
+
 # Cargar variables de entorno
 load_dotenv()
 
