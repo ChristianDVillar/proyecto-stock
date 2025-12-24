@@ -1,6 +1,6 @@
-# 📦 Proyecto Stock - Sistema de Gestión de Inventario
+# Proyecto Stock - Sistema de Gestión de Inventario
 
-> Sistema completo de gestión de inventario full-stack desarrollado con Flask, React y React Native. Diseñado para pequeñas y medianas empresas que necesitan control eficiente de su inventario.
+Sistema completo de gestión de inventario full-stack desarrollado con Flask, React y React Native. Diseñado para pequeñas y medianas empresas que necesitan control eficiente de su inventario.
 
 ![Version](https://img.shields.io/badge/version-0.1.0-blue)
 ![Python](https://img.shields.io/badge/python-3.11+-green)
@@ -9,19 +9,19 @@
 ![React](https://img.shields.io/badge/React-18.2.0-blue)
 ![License](https://img.shields.io/badge/license-Private-red)
 
-## 🎯 ¿Qué Problema Resuelve?
+## ¿Qué Problema Resuelve?
 
 **Problema:** Las pequeñas empresas y comercios necesitan una solución accesible para gestionar su inventario sin depender de sistemas costosos o complejos.
 
 **Solución:** Proyecto Stock ofrece:
-- ✅ **Gestión completa de inventario** con códigos de barras
-- ✅ **Interfaz web moderna** para administración
-- ✅ **App móvil** para consultas rápidas
-- ✅ **Autenticación segura** con roles (admin/user)
-- ✅ **Búsqueda avanzada** con filtros y paginación
-- ✅ **Trazabilidad** de movimientos y mantenimientos
+- **Gestión completa de inventario** con códigos de barras
+- **Interfaz web moderna** para administración
+- **App móvil** para consultas rápidas
+- **Autenticación segura** con roles (admin/user)
+- **Búsqueda avanzada** con filtros y paginación
+- **Trazabilidad** de movimientos y mantenimientos
 
-## 🏗️ Arquitectura
+## Arquitectura
 
 ```
 ┌─────────────┐  ┌─────────────┐  ┌─────────────┐
@@ -42,43 +42,43 @@
               └───────────────────┘
 ```
 
-📖 **Ver arquitectura completa:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+**Ver arquitectura completa:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
-## 🚀 Características Principales
+## Características Principales
 
 ### Backend (Flask)
-- ✅ **Arquitectura modular** con Application Factory Pattern
-- ✅ **Configuración por entornos** (development/testing/production)
-- ✅ **JWT Authentication** con renovación automática
-- ✅ **Rate Limiting** para protección contra abuso
-- ✅ **Logging estructurado** con JSON
-- ✅ **Validación robusta** de entrada
-- ✅ **Tests completos** con pytest (cobertura >80%)
-- ✅ **Documentación API** con Swagger
+- **Arquitectura modular** con Application Factory Pattern
+- **Configuración por entornos** (development/testing/production)
+- **JWT Authentication** con renovación automática
+- **Rate Limiting** para protección contra abuso
+- **Logging estructurado** con JSON
+- **Validación robusta** de entrada
+- **Tests completos** con pytest (cobertura >80%)
+- **Documentación API** con Swagger
 
 ### Frontend (React)
-- ✅ **Patrón Flux** para gestión de estado
-- ✅ **Componentes modulares** y reutilizables
-- ✅ **Escaneo de códigos de barras** (cámara e imagen)
-- ✅ **Búsqueda avanzada** con filtros múltiples
-- ✅ **Paginación** optimizada
-- ✅ **Tests con React Testing Library**
-- ✅ **ESLint + Prettier** para calidad de código
+- **Patrón Flux** para gestión de estado
+- **Componentes modulares** y reutilizables
+- **Escaneo de códigos de barras** (cámara e imagen)
+- **Búsqueda avanzada** con filtros múltiples
+- **Paginación** optimizada
+- **Tests con React Testing Library**
+- **ESLint + Prettier** para calidad de código
 
 ### Mobile (React Native)
-- ✅ **Autenticación JWT**
-- ✅ **Consulta de inventario**
-- ✅ **Búsqueda en tiempo real**
-- ✅ **Diseño nativo** para iOS y Android
+- **Autenticación JWT**
+- **Consulta de inventario**
+- **Búsqueda en tiempo real**
+- **Diseño nativo** para iOS y Android
 
-## 📋 Requisitos Previos
+## Requisitos Previos
 
 - **Node.js** >= 18
 - **Python** 3.11+
 - **PostgreSQL** 15+ (opcional, SQLite por defecto)
 - **npm** o **yarn**
 
-## 🔧 Instalación Rápida
+## Instalación Rápida
 
 ### 1. Clonar Repositorio
 ```bash
@@ -115,7 +115,7 @@ npm install
 npm run android  # o npm run ios
 ```
 
-## 🎮 Uso
+## Uso
 
 ### Credenciales por Defecto
 - **Usuario Admin:** `admin` / `admin123`
@@ -153,7 +153,7 @@ curl "http://localhost:5000/api/stock/search?q=laptop&page=1" \
   -H "Authorization: Bearer <token>"
 ```
 
-## 🧪 Testing
+## Testing
 
 ### Backend
 ```bash
@@ -184,14 +184,14 @@ npm run lint:fix
 npm run format
 ```
 
-## 📚 Documentación
+## Documentación
 
 - **API Documentation:** [docs/API.md](docs/API.md)
 - **Deployment Guide:** [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 - **Architecture:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - **Swagger UI:** http://localhost:5000/api-docs
 
-## 🛠️ Stack Tecnológico
+## Stack Tecnológico
 
 ### Backend
 - **Flask 3.0.0** - Framework web
@@ -218,19 +218,19 @@ npm run format
 - **GitHub Actions** - CI/CD
 - **Dependabot** - Actualizaciones automáticas
 
-## 🔒 Seguridad
+## Seguridad
 
-- ✅ **JWT con expiración** y renovación automática
-- ✅ **Rate limiting** en endpoints críticos
-- ✅ **Validación de entrada** en frontend y backend
-- ✅ **CORS configurado** restrictivamente
-- ✅ **Variables de entorno** para secretos
-- ✅ **SQL Injection protection** con ORM
-- ✅ **Error handling** sin exposición de información sensible
+- **JWT con expiración** y renovación automática
+- **Rate limiting** en endpoints críticos
+- **Validación de entrada** en frontend y backend
+- **CORS configurado** restrictivamente
+- **Variables de entorno** para secretos
+- **SQL Injection protection** con ORM
+- **Error handling** sin exposición de información sensible
 
 Ver [VULNERABILITIES_REPORT.md](VULNERABILITIES_REPORT.md) para detalles de seguridad.
 
-## 📊 Casos de Uso
+## Casos de Uso
 
 ### Caso 1: Pequeño Comercio
 **Escenario:** Tienda de electrónicos necesita controlar inventario de dispositivos.
@@ -250,7 +250,7 @@ Ver [VULNERABILITIES_REPORT.md](VULNERABILITIES_REPORT.md) para detalles de segu
 3. Rastrean ubicación de cada item
 4. Registran mantenimientos
 
-## 🚀 Despliegue
+## Despliegue
 
 ### Docker (Recomendado)
 ```bash
@@ -261,7 +261,7 @@ docker-compose up -d
 ### Producción
 Ver guía completa en [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
-## 📈 Roadmap
+## Roadmap
 
 - [ ] Notificaciones push (mobile)
 - [ ] Exportación a Excel/PDF
@@ -270,7 +270,7 @@ Ver guía completa en [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 - [ ] API para terceros
 - [ ] Multi-tenant support
 
-## 🤝 Contribución
+## Contribución
 
 Las contribuciones son bienvenidas. Por favor:
 
@@ -280,16 +280,16 @@ Las contribuciones son bienvenidas. Por favor:
 4. Push a la rama (`git push origin feature/AmazingFeature`)
 5. Abre un Pull Request
 
-## 📄 Licencia
+## Licencia
 
 Este proyecto es privado.
 
-## 👤 Autor
+## Autor
 
 **Christian David Villar Colodro**
 - GitHub: [@ChristianDVillar](https://github.com/ChristianDVillar)
 
-## 🙏 Agradecimientos
+## Agradecimientos
 
 - Flask Community
 - React Community

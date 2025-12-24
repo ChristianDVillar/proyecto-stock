@@ -1,27 +1,27 @@
 # Evaluación del Proyecto - Nivel Profesional
 
-## 📊 Estado Actual vs Objetivo
+## Estado Actual vs Objetivo
 
 ### Estado Inicial (Antes del Refactor)
-- 🟡 **Nivel Percibido:** Junior alto / Semi-Junior
-- ⚠️ Estructura mezclada (backend + frontend en src/)
-- ⚠️ app.py hacía demasiadas cosas
-- ⚠️ Falta de tests frontend
-- ⚠️ Sin linting/formato
-- ⚠️ README básico
+- **Nivel Percibido:** Junior alto / Semi-Junior
+- Estructura mezclada (backend + frontend en src/)
+- app.py hacía demasiadas cosas
+- Falta de tests frontend
+- Sin linting/formato
+- README básico
 
 ### Estado Actual (Después de Mejoras)
-- 🟢 **Nivel Percibido:** Semi-Senior
-- ✅ Rate limiting implementado
-- ✅ Tests de permisos y errores
-- ✅ ESLint + Prettier configurados
-- ✅ Tests frontend (Login, ConsultInventory)
-- ✅ README mejorado con diagramas
-- ✅ Logging estructurado
-- ✅ Configuración por entornos
-- ✅ Manejo de errores centralizado
+- **Nivel Percibido:** Semi-Senior
+- Rate limiting implementado
+- Tests de permisos y errores
+- ESLint + Prettier configurados
+- Tests frontend (Login, ConsultInventory)
+- README mejorado con diagramas
+- Logging estructurado
+- Configuración por entornos
+- Manejo de errores centralizado
 
-## ✅ Mejoras Implementadas
+## Mejoras Implementadas
 
 ### Backend
 1. **Rate Limiting** - Flask-Limiter configurado
@@ -41,7 +41,7 @@
 2. **Diagrama de Arquitectura** - Visualización clara
 3. **Ejemplos de Código** - Casos de uso prácticos
 
-## 🎯 Para Llegar a Senior
+## Para Llegar a Senior
 
 ### Pendiente (Opcional pero Recomendado)
 1. **Refactor Completo Backend**
