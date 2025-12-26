@@ -23,7 +23,7 @@ def register_blueprints(app, limiter):
     def index():
         from flask import jsonify
         return jsonify({
-            'message': 'API funcionando correctamente',
+            'message': 'API funcionando',
             'status': 'healthy'
         })
 
