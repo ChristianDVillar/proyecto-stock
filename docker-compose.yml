@@ -1,0 +1,139 @@
+version: '3.8'
+
+volumes:
+  postgres_data:    # Definición del volumen para PostgreSQL
+    driver: local
+  es_data: # Volumen para Elasticsearch
+    driver: local
+
+networks:
+  stock_network:
+    driver: bridge
+
+services:
+  nginx:
+    build: ./nginx
+    ports:
+      - "9001:80"
+    depends_on:
+      - client
+      - server
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - stock_network
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: stock_user
+      POSTGRES_PASSWORD: stock_password
+      POSTGRES_DB: stock_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stock_user -d stock_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - stock_network
+
+  client:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+    ports:
+      - "7000:80"
+    networks:
+      - stock_network
+    restart: unless-stopped
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URI: postgresql://stock_user:stock_password@postgres:5432/stock_db
+      PORT: 3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: stock_user
+      DB_PASSWORD: stock_password
+      DB_NAME: stock_db
+      SECRET_KEY: ${SECRET_KEY:-y9aeUKvY9PtMCkgmSFS9y4WfwJrujMvYMUE6uM2r7cnXAWJJafSvYQhWDBcg}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-y9aeUKvY9PtMCkgmSFS9y4WfwJrujMvYMUE6uM2r7cnXAWJJafSvYQhWDBcg}
+      FLASK_ENV: production
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTIC_USERNAME: elastic
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:-changeme}
+      CORS_ORIGINS: http://localhost:7000,http://localhost:9001
+    volumes:
+      - ./instance:/app/instance
+    depends_on:
+      postgres:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - stock_network
+    restart: unless-stopped
+
+  db-init:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    command: python scripts/init_db.py
+    environment:
+      DATABASE_URI: postgresql://stock_user:stock_password@postgres:5432/stock_db
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: stock_user
+      DB_PASSWORD: stock_password
+      DB_NAME: stock_db
+      FLASK_ENV: production
+    volumes:
+      - ./scripts:/app/scripts:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - stock_network
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.4
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=true
+      - ELASTIC_USERNAME=elastic
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:-changeme}
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - bootstrap.memory_lock=true
+    ports:
+      - "9200:9200"
+    healthcheck:
+      test: [
+        "CMD-SHELL",
+        "curl -s -u elastic:${ELASTIC_PASSWORD:-changeme} http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"' || exit 1"
+      ]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 40s
+    networks:
+      - stock_network
+    restart: unless-stopped
+
