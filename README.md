@@ -164,7 +164,7 @@ npm run android  # o npm run ios
 
 ```bash
 # Login
-curl -X POST http://localhost:5000/api/auth/login \
+curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "username": "admin",
@@ -189,7 +189,7 @@ curl -X POST http://localhost:5000/api/auth/login \
 TOKEN="tu-token-aqui"
 
 # Crear stock (requiere token)
-curl -X POST http://localhost:5000/api/stock \
+curl -X POST http://localhost:3000/api/stock \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -217,11 +217,11 @@ curl -X POST http://localhost:5000/api/stock \
 
 ```bash
 # Búsqueda simple
-curl "http://localhost:5000/api/stock/search?q=laptop&page=1" \
+curl "http://localhost:3000/api/stock/search?q=laptop&page=1" \
   -H "Authorization: Bearer $TOKEN"
 
 # Búsqueda con filtros avanzados
-curl "http://localhost:5000/api/stock/search?q=laptop&dispositivo=laptop&estado=disponible&page=1&per_page=10" \
+curl "http://localhost:3000/api/stock/search?q=laptop&dispositivo=laptop&estado=disponible&page=1&per_page=10" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -229,14 +229,14 @@ curl "http://localhost:5000/api/stock/search?q=laptop&dispositivo=laptop&estado=
 
 ```bash
 # Buscar por código de barras
-curl "http://localhost:5000/api/stock/barcode/LAP001" \
+curl "http://localhost:3000/api/stock/barcode/LAP001" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
 #### 5. Actualizar Stock
 
 ```bash
-curl -X PUT http://localhost:5000/api/stock/1 \
+curl -X PUT http://localhost:3000/api/stock/1 \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -248,12 +248,12 @@ curl -X PUT http://localhost:5000/api/stock/1 \
 #### 6. Eliminar Stock
 
 ```bash
-curl -X DELETE http://localhost:5000/api/stock/1 \
+curl -X DELETE http://localhost:3000/api/stock/1 \
   -H "Authorization: Bearer $TOKEN"
 ```
 
 > 📖 **Documentación completa de la API:** [docs/API.md](docs/API.md)  
-> 🔍 **Swagger UI interactivo:** http://localhost:5000/api-docs
+> 🔍 **Swagger UI interactivo:** http://localhost:3000/api-docs (o http://localhost:9001/api-docs vía nginx)
 
 ## Testing
 
@@ -291,7 +291,7 @@ npm run format
 - **API Documentation:** [docs/API.md](docs/API.md)
 - **Deployment Guide:** [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 - **Architecture:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- **Swagger UI:** http://localhost:5000/api-docs
+- **Swagger UI:** http://localhost:3000/api-docs (o http://localhost:9001/api-docs vía nginx)
 
 ## Stack Tecnológico
 

@@ -7,7 +7,7 @@
 #### Option 1: Docker (Recommended)
 
 ```bash
-cd backend
+# Desde la raíz del proyecto
 docker-compose up -d
 ```
 
@@ -23,7 +23,8 @@ export SECRET_KEY=your-secret-key
 export JWT_SECRET_KEY=your-jwt-secret-key
 
 # Run with Gunicorn
-gunicorn --bind 0.0.0.0:5000 --workers 4 --timeout 120 src.app:app
+# Nota: Usa wsgi.py que crea la app con Application Factory Pattern
+gunicorn --bind 0.0.0.0:5000 --workers 4 --timeout 120 --chdir src wsgi:app
 ```
 
 #### Option 3: Systemd Service
@@ -40,7 +41,7 @@ Type=notify
 User=www-data
 WorkingDirectory=/opt/stock/backend
 Environment="PATH=/opt/stock/venv/bin"
-ExecStart=/opt/stock/venv/bin/gunicorn --bind 0.0.0.0:5000 --workers 4 src.app:app
+ExecStart=/opt/stock/venv/bin/gunicorn --bind 0.0.0.0:5000 --workers 4 --chdir src wsgi:app
 Restart=always
 
 [Install]
@@ -77,7 +78,7 @@ server {
     }
 
     location /api {
-        proxy_pass http://localhost:5000;
+        proxy_pass http://localhost:3000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }
@@ -154,7 +155,7 @@ See `.github/workflows/ci.yml` for details.
 
 Backend health endpoint:
 ```
-GET http://localhost:5000/
+GET http://localhost:3000/
 ```
 
 ### Logging

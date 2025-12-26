@@ -1,5 +1,18 @@
 version: '3.8'
 
+# Variables de entorno compartidas
+# Puedes crear un archivo .env en la raíz del proyecto con estas variables
+x-common-variables: &common-variables
+  DB_HOST: postgres
+  DB_PORT: 5432
+  DB_USER: stock_user
+  DB_PASSWORD: stock_password
+  DB_NAME: stock_db
+  DATABASE_URI: postgresql://stock_user:stock_password@postgres:5432/stock_db
+  ELASTICSEARCH_URL: http://elasticsearch:9200
+  ELASTIC_USERNAME: elastic
+  ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:-changeme}
+
 volumes:
   postgres_data:    # Definición del volumen para PostgreSQL
     driver: local
@@ -62,19 +75,11 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URI: postgresql://stock_user:stock_password@postgres:5432/stock_db
+      <<: *common-variables
       PORT: 3000
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: stock_user
-      DB_PASSWORD: stock_password
-      DB_NAME: stock_db
-      SECRET_KEY: ${SECRET_KEY:-y9aeUKvY9PtMCkgmSFS9y4WfwJrujMvYMUE6uM2r7cnXAWJJafSvYQhWDBcg}
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-y9aeUKvY9PtMCkgmSFS9y4WfwJrujMvYMUE6uM2r7cnXAWJJafSvYQhWDBcg}
+      SECRET_KEY: ${SECRET_KEY}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-${SECRET_KEY}}
       FLASK_ENV: production
-      ELASTICSEARCH_URL: http://elasticsearch:9200
-      ELASTIC_USERNAME: elastic
-      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:-changeme}
       CORS_ORIGINS: http://localhost:7000,http://localhost:9001
     volumes:
       - ./instance:/app/instance
@@ -96,12 +101,7 @@ services:
       target: production
     command: python scripts/init_db.py
     environment:
-      DATABASE_URI: postgresql://stock_user:stock_password@postgres:5432/stock_db
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: stock_user
-      DB_PASSWORD: stock_password
-      DB_NAME: stock_db
+      <<: *common-variables
       FLASK_ENV: production
     volumes:
       - ./scripts:/app/scripts:ro
