@@ -1,152 +1,71 @@
-# Reporte de Vulnerabilidades y Correcciones
+# Vulnerabilities Report
 
-## Resumen Ejecutivo
+Este documento resume los aspectos de seguridad que se revisaron durante el desarrollo del proyecto **Proyecto Stock**.
 
-Se realizó un análisis completo de las dependencias del proyecto identificando **27 vulnerabilidades**:
-- **2 críticas**
-- **11 altas**
-- **11 moderadas**
-- **3 bajas**
+No se trata de una auditoría profesional, sino de una revisión consciente orientada a buenas prácticas básicas en aplicaciones web.
 
-## Vulnerabilidades Críticas
+---
 
-### 1. form-data (Critical)
-- **Versión afectada**: < 2.5.4 o >= 3.0.0 < 3.0.4
-- **Problema**: Usa función aleatoria insegura para elegir boundary
-- **CWE**: CWE-330
-- **Solución**: Actualizado mediante overrides en package.json
+## Autenticación y autorización
 
-### 2. request (Critical/Moderate)
-- **Versión afectada**: <= 2.88.2
-- **Problemas**: 
-  - Server-Side Request Forgery (SSRF)
-  - Dependencia de form-data vulnerable
-- **CWE**: CWE-918
-- **Solución**: Actualizado mediante overrides
+- Se utiliza autenticación basada en JWT.
+- Los tokens se validan en endpoints protegidos.
+- No se implementaron refresh tokens para mantener la solución simple.
 
-## Vulnerabilidades Altas
+⚠️ **Limitación conocida:** los tokens tienen una gestión básica y no están pensados para un entorno de alta seguridad.
 
-### 1. react-scripts (High)
-- **Problema**: Dependencias transitivas vulnerables
-- **Dependencias afectadas**: @svgr/webpack, resolve-url-loader, webpack-dev-server
-- **Solución**: Se mantiene la versión actual (5.0.1) ya que requiere eject para actualizar
+---
 
-### 2. cross-spawn (High)
-- **Versión afectada**: >= 7.0.0 < 7.0.5
-- **Problema**: Regular Expression Denial of Service (ReDoS)
-- **CWE**: CWE-1333
-- **Solución**: Actualizado a >= 7.0.5 mediante overrides
+## Validación de datos
 
-### 3. path-to-regexp (High)
-- **Versión afectada**: < 0.1.12
-- **Problema**: Contiene ReDoS
-- **CWE**: CWE-1333
-- **Solución**: Actualizado a >= 0.1.12 mediante overrides
+- Se valida la entrada de datos en los endpoints principales.
+- Se evita confiar en datos provenientes del cliente.
+- Se controlan casos básicos como valores negativos o campos vacíos.
 
-### 4. nth-check (High)
-- **Problema**: Complejidad ineficiente de expresiones regulares
-- **CWE**: CWE-1333
-- **Solución**: Requiere actualización de react-scripts
+---
 
-### 5. node-forge (High)
-- **Versión afectada**: <= 1.3.1
-- **Problemas**:
-  - ASN.1 Unbounded Recursion
-  - Interpretation Conflict vulnerability
-  - ASN.1 OID Integer Truncation
-- **CWE**: CWE-674, CWE-436, CWE-190
-- **Solución**: Actualizado a >= 1.3.2 mediante overrides
+## Manejo de errores
 
-### 6. glob (High)
-- **Versión afectada**: >= 10.2.0 < 10.5.0
-- **Problema**: Command injection via -c/--cmd
-- **CWE**: CWE-78
-- **Solución**: Actualizado a >= 10.5.0 mediante overrides
+- Los errores del servidor no exponen información sensible.
+- Se devuelven mensajes genéricos al cliente.
+- Los detalles técnicos quedan limitados al backend.
 
-## Vulnerabilidades Moderadas
+---
 
-### 1. @babel/helpers y @babel/runtime
-- **Versión afectada**: < 7.26.10
-- **Problema**: Complejidad ineficiente de RegExp
-- **Solución**: Actualizado a >= 7.26.10 mediante overrides
+## CORS y configuración
 
-### 2. @ericblade/quagga2
-- **Versión afectada**: <= 1.8.4
-- **Problema**: Dependencia de get-pixels vulnerable
-- **Solución**: Actualizado a 1.8.5 en package.json
+- Se configura CORS de forma explícita.
+- Las variables sensibles se gestionan mediante variables de entorno.
+- No se suben credenciales al repositorio.
 
-### 3. js-yaml
-- **Versión afectada**: < 3.14.2 o >= 4.0.0 < 4.1.1
-- **Problema**: Prototype pollution en merge
-- **CWE**: CWE-1321
-- **Solución**: Actualizado a >= 4.1.1 mediante overrides
+---
 
-### 4. nanoid
-- **Versión afectada**: < 3.3.8
-- **Problema**: Resultados predecibles en generación
-- **CWE**: CWE-835
-- **Solución**: Actualizado a >= 3.3.8 mediante overrides
+## Dependencias
 
-### 5. http-proxy-middleware
-- **Versión afectada**: >= 1.3.0 < 2.0.9
-- **Problemas**: Múltiples vulnerabilidades
-- **Solución**: Actualizado a >= 2.0.9 mediante overrides
+- Se revisaron dependencias conocidas con vulnerabilidades públicas.
+- Se actualizaron librerías cuando fue necesario.
+- No se utilizan paquetes abandonados de forma consciente.
 
-### 6. postcss
-- **Versión afectada**: < 8.4.31
-- **Problema**: Error de parsing en line return
-- **CWE**: CWE-74, CWE-144
-- **Solución**: Requiere actualización de react-scripts
+---
 
-## Vulnerabilidades Bajas
+## Limitaciones
 
-### 1. brace-expansion
-- **Problema**: ReDoS
-- **Solución**: Actualizado mediante overrides
+Este proyecto **no está pensado para producción**, por lo que:
 
-### 2. compression
-- **Problema**: Dependencia de on-headers vulnerable
-- **Solución**: Actualizado mediante overrides
+- No incluye rate limiting avanzado
+- No implementa protección avanzada contra ataques de fuerza bruta
+- No cuenta con auditorías automáticas continuas
 
-### 3. on-headers
-- **Problema**: Vulnerable a manipulación de headers HTTP
-- **CWE**: CWE-241
-- **Solución**: Actualizado a >= 1.1.0 mediante overrides
+Estas decisiones se tomaron para mantener el proyecto entendible y acorde a su objetivo educativo y de portfolio.
 
-## Correcciones Implementadas
+---
 
-### Frontend (package.json)
-1. Actualizado `@ericblade/quagga2` a `^1.8.5`
-2. Agregado sección `overrides` para forzar versiones seguras de dependencias transitivas
+## Dependencias vulnerables encontradas
 
-### Backend (requirements.txt)
-1. Actualizado `Flask` de 2.3.3 a 3.0.0
-2. Actualizado `Flask-JWT-Extended` de 4.5.2 a 4.6.0
-3. Actualizado `Werkzeug` de 2.3.7 a 3.0.1
-4. Actualizado `boto3` de 1.28.44 a 1.34.0
-5. Actualizado `Pillow` de 10.0.0 a 10.2.0
-6. Actualizado `SQLAlchemy` de 2.0.20 a 2.0.25
-7. Agregado `flask-swagger-ui` y `flasgger` para documentación
-8. Agregado `pytest`, `pytest-flask`, `pytest-cov` para testing
+Durante el desarrollo se identificaron algunas vulnerabilidades en dependencias transitivas (principalmente del frontend con react-scripts). Se aplicaron overrides en `package.json` para mitigar las más críticas, pero algunas requieren actualizaciones mayores que están fuera del alcance del proyecto.
 
-## Recomendaciones Adicionales
+---
 
-1. **Actualizar react-scripts**: Considerar migrar a una versión más reciente o usar Vite/Create React App más reciente
-2. **Monitoreo continuo**: Integrar herramientas como Snyk o Dependabot en CI/CD
-3. **Auditorías regulares**: Ejecutar `npm audit` y `pip-audit` regularmente
-4. **Actualizaciones de seguridad**: Mantener dependencias actualizadas
+## Notas finales
 
-## Próximos Pasos
-
-1. Ejecutar `npm install` para aplicar los overrides
-2. Ejecutar `pip install -r requirements.txt --upgrade` para actualizar dependencias de Python
-3. Ejecutar `npm audit fix` para aplicar correcciones automáticas
-4. Ejecutar `pip-audit` para verificar dependencias de Python
-5. Ejecutar los tests para verificar que todo funciona correctamente
-
-## Notas
-
-- Algunas vulnerabilidades requieren actualización mayor de `react-scripts`, lo cual puede requerir eject o migración
-- Las vulnerabilidades en dependencias transitivas se han mitigado mediante overrides en package.json
-- Se recomienda revisar periódicamente las actualizaciones de seguridad
-
+Este proyecto prioriza la claridad y el aprendizaje sobre la seguridad de nivel empresarial. Para un entorno de producción real, se requerirían medidas adicionales que no se implementaron aquí por diseño.
