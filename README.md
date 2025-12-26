@@ -1,6 +1,8 @@
-# 📦 Proyecto Stock
+# Proyecto Stock
 
-Sistema completo de **gestión de inventario** con backend, frontend web y aplicación móvil.
+Proyecto personal de gestión de inventario desarrollado como ejercicio práctico de desarrollo full-stack, cubriendo backend, frontend web y una aplicación móvil sencilla.
+
+La idea de este proyecto no fue "hacerlo todo perfecto", sino construir algo real, funcional y entendible, similar a lo que se puede encontrar en un entorno de trabajo pequeño o medio.
 
 [![CI](https://github.com/ChristianDVillar/proyecto-stock/actions/workflows/ci.yml/badge.svg)](https://github.com/ChristianDVillar/proyecto-stock/actions)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -9,187 +11,147 @@ Sistema completo de **gestión de inventario** con backend, frontend web y aplic
 [![Flask](https://img.shields.io/badge/Flask-3.0.0-black)](https://flask.palletsprojects.com/)
 [![Node](https://img.shields.io/badge/Node-18+-green)](https://nodejs.org/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue)](docker-compose.yml)
-[![Coverage](https://img.shields.io/codecov/c/github/ChristianDVillar/proyecto-stock?label=coverage)](https://codecov.io/gh/ChristianDVillar/proyecto-stock)
 
 ---
 
-## 🚀 Características
+## ¿Qué hace el proyecto?
 
-- ✅ **Autenticación JWT** con renovación automática
-- ✅ **CRUD completo de stock** con validación robusta
-- ✅ **Escaneo de códigos de barras** (cámara e imagen)
-- ✅ **Búsqueda avanzada** con filtros y paginación
-- ✅ **Frontend web** (React con patrón Flux)
-- ✅ **Backend API** (Flask con Application Factory)
-- ✅ **App móvil** (React Native para iOS y Android)
-- ✅ **Tests automatizados** (pytest + React Testing Library)
-- ✅ **Documentación técnica** y de seguridad completa
-- ✅ **Docker** con multi-stage builds
-- ✅ **CI/CD** con GitHub Actions
-- ✅ **Rate limiting** y protección contra abuso
+Proyecto Stock permite:
 
-## 🎯 ¿Qué Problema Resuelve?
+- Gestionar productos y stock
+- Crear, editar y eliminar artículos
+- Controlar cantidades disponibles
+- Buscar y paginar resultados
+- Autenticarse mediante usuario y contraseña
+- Escanear códigos de barras desde web o móvil
 
-**Problema:** Las pequeñas empresas y comercios necesitan una solución accesible para gestionar su inventario sin depender de sistemas costosos o complejos.
+Está pensado como una base sólida, no como un producto final listo para producción.
 
-**Solución:** Proyecto Stock ofrece:
-- **Gestión completa de inventario** con códigos de barras
-- **Interfaz web moderna** para administración
-- **App móvil** para consultas rápidas
-- **Autenticación segura** con roles (admin/user)
-- **Búsqueda avanzada** con filtros y paginación
-- **Trazabilidad** de movimientos y mantenimientos
+## Estructura general
 
-## 🏗️ Arquitectura
+El proyecto está dividido en tres partes principales:
 
-### Backend (Flask)
-- **Arquitectura modular** con Application Factory Pattern
-- **Configuración por entornos** (development/testing/production)
-- **JWT Authentication** con renovación automática
-- **Rate Limiting** para protección contra abuso
-- **Logging estructurado** con JSON
-- **Validación robusta** de entrada
-- **Tests completos** con pytest (cobertura >80%)
-- **Documentación API** con Swagger
+- **Backend**: API REST desarrollada con Flask
+- **Frontend Web**: Aplicación React para uso desde navegador
+- **Aplicación móvil**: App en React Native orientada a escaneo y consulta rápida
 
-### Frontend (React)
-- **Patrón Flux** para gestión de estado
-- **Componentes modulares** y reutilizables
-- **Escaneo de códigos de barras** (cámara e imagen)
-- **Búsqueda avanzada** con filtros múltiples
-- **Paginación** optimizada
-- **Tests con React Testing Library**
-- **ESLint + Prettier** para calidad de código
+La separación se hizo para evitar un enfoque monolítico y para que cada parte pueda evolucionar de forma independiente si fuera necesario.
 
-### Mobile (React Native)
-- **Autenticación JWT**
-- **Consulta de inventario**
-- **Búsqueda en tiempo real**
-- **Diseño nativo** para iOS y Android
+## Decisiones técnicas (explicadas de forma honesta)
 
-## Requisitos Previos
+Durante el desarrollo se tomaron varias decisiones conscientes:
 
-- **Node.js** >= 18
-- **Python** 3.11+
-- **PostgreSQL** 15+ (opcional, SQLite por defecto)
-- **npm** o **yarn**
+- **Se eligió Flask por simplicidad**. No era necesario algo más complejo para el alcance del proyecto.
+- **La autenticación se implementó con JWT sin refresh tokens** para mantener el código claro y fácil de seguir.
+- **El frontend prioriza legibilidad y orden del código** antes que optimizaciones avanzadas.
+- **No se usaron arquitecturas complejas** (microservicios, colas, etc.) porque no aportaban valor real al objetivo del proyecto.
+- **La app móvil reutiliza conceptos del frontend web** para evitar duplicar lógica innecesariamente.
 
-## 🚀 Instalación Rápida
+La intención fue siempre mantener el equilibrio entre buenas prácticas y simplicidad.
 
-### Opción 1: Docker (Recomendado) ⚡
+## Tecnologías utilizadas
 
-La forma más rápida de iniciar el proyecto:
+**Backend:**
+- Python
+- Flask
+- SQLAlchemy
+- JWT
+- Swagger / OpenAPI
+
+**Frontend Web:**
+- React 18
+- React Router
+- Quagga2 (lector de códigos de barras)
+- React Icons
+
+**Aplicación móvil:**
+- React Native
+- TypeScript
+
+**Testing:**
+- pytest (backend)
+- Jest / Testing Library (frontend)
+
+## Tests
+
+El proyecto incluye tests básicos tanto en backend como en frontend.
+
+No se buscó una cobertura del 100%, sino asegurar que:
+- Los endpoints principales funcionan
+- La lógica crítica no se rompe con cambios
+- Los componentes clave renderizan correctamente
+
+## Seguridad
+
+Se tuvieron en cuenta aspectos básicos de seguridad habituales en proyectos de este tipo:
+
+- Validación de datos de entrada
+- Uso de JWT para autenticación
+- Configuración de CORS
+- Revisión manual de dependencias vulnerables
+
+Existe un archivo específico ([VULNERABILITIES_REPORT.md](VULNERABILITIES_REPORT.md)) donde se documentan los puntos revisados.
+
+## Limitaciones conocidas
+
+Este proyecto tiene varias limitaciones asumidas a propósito:
+
+- No hay sistema avanzado de roles (solo un esquema simple)
+- No se implementaron refresh tokens
+- La app móvil no funciona offline
+- El despliegue está pensado para entornos de desarrollo o demo
+
+Estas limitaciones se dejaron explícitas para no sobre-complicar el proyecto.
+
+## Instalación y uso
+
+### Con Docker (recomendado)
 
 ```bash
-# Clonar repositorio
 git clone https://github.com/ChristianDVillar/proyecto-stock.git
 cd proyecto-stock
 
-# ⚠️ IMPORTANTE: Para producción, crea un archivo .env con valores seguros
-# Ver .env.example y SECURITY.md para más información
-# Para desarrollo local, puedes usar los valores por defecto
+# ⚠️ Para producción, crea un archivo .env con valores seguros
+# Ver SECURITY.md para más información
 
-# Construir e iniciar todos los servicios
 docker-compose up -d
-
-# Ver logs
-docker-compose logs -f
 ```
 
-> 🔒 **Seguridad:** Los valores por defecto (con sufijo `_dev_only`) son **SOLO para desarrollo**.  
-> En **producción**, configura todas las variables de entorno en un archivo `.env`. Ver [SECURITY.md](SECURITY.md).
+El proyecto estará disponible en:
+- Frontend: http://localhost:7000
+- Backend API: http://localhost:3000
+- Nginx Proxy: http://localhost:9001
+- API Docs: http://localhost:9001/api-docs
 
-¡Listo! El proyecto estará disponible en:
-- **Frontend**: http://localhost:7000
-- **Backend API**: http://localhost:3000
-- **Nginx Proxy**: http://localhost:9001
-- **API Docs (Swagger)**: http://localhost:9001/api-docs
+### Manual
 
-### Opción 2: Instalación Manual
-
-#### 1. Clonar Repositorio
+**Backend:**
 ```bash
-git clone https://github.com/ChristianDVillar/proyecto-stock.git
-cd proyecto-stock
-```
-
-#### 2. Backend
-```bash
-# Instalar dependencias
 pip install -r requirements.txt
-
-# Configurar variables de entorno
-cp .env.example .env
-# Editar .env con tus configuraciones
-
-# Inicializar base de datos
 python src/run.py
 ```
 
-#### 3. Frontend
+**Frontend:**
 ```bash
-# Instalar dependencias
+cd frontend
 npm install
-
-# Iniciar servidor de desarrollo
 npm start
 ```
 
-#### 4. Mobile (Opcional)
+Para más detalles, ver la documentación incluida en el repositorio.
+
+## Ejemplos de uso de la API
+
+### Login
 ```bash
-cd Stocker/StockerMobile
-npm install
-npm run android  # o npm run ios
-```
-
-## Uso
-
-### Credenciales Iniciales
-
-> ⚠️ **IMPORTANTE:** Las credenciales por defecto solo son para desarrollo. En producción, cambia inmediatamente la contraseña del usuario admin.
-
-Al iniciar la aplicación por primera vez, se crea un usuario administrador por defecto. Consulta la documentación de despliegue para más detalles sobre cómo configurar credenciales seguras en producción.
-
-- **Usuario Regular:** Crear desde panel de administración
-
-### Flujo de Trabajo Típico
-
-1. **Login** → Iniciar sesión con credenciales
-2. **Crear Stock** → Escanear código de barras y completar formulario
-3. **Consultar** → Buscar items con filtros avanzados
-4. **Gestionar** → Ver detalles, movimientos y mantenimientos
-
-### Ejemplos de Uso de API
-
-#### 1. Autenticación y Obtención de Token
-
-```bash
-# Login (reemplaza USERNAME y PASSWORD con tus credenciales)
 curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{
-    "username": "USERNAME",
-    "password": "PASSWORD"
-  }'
-
-# Respuesta:
-# {
-#   "access_token": "eyJ0eXAiOiJKV1QiLCJhbGc...",
-#   "user": {
-#     "id": 1,
-#     "username": "admin",
-#     "user_type": "admin"
-#   }
-# }
+  -d '{"username": "USERNAME", "password": "PASSWORD"}'
 ```
 
-#### 2. Crear Item de Stock
-
+### Crear stock
 ```bash
-# Guardar el token en una variable
 TOKEN="tu-token-aqui"
-
-# Crear stock (requiere token)
 curl -X POST http://localhost:3000/api/stock \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
@@ -201,237 +163,40 @@ curl -X POST http://localhost:3000/api/stock \
     "cantidad": 5,
     "estado": "disponible"
   }'
-
-# Respuesta:
-# {
-#   "message": "Stock creado exitosamente",
-#   "stock": {
-#     "id": 1,
-#     "barcode": "LAP001",
-#     "modelo": "Dell XPS 15",
-#     ...
-#   }
-# }
 ```
 
-#### 3. Buscar Stock
+Ver [docs/API.md](docs/API.md) para más ejemplos.
 
-```bash
-# Búsqueda simple
-curl "http://localhost:3000/api/stock/search?q=laptop&page=1" \
-  -H "Authorization: Bearer $TOKEN"
+## Objetivo del proyecto
 
-# Búsqueda con filtros avanzados
-curl "http://localhost:3000/api/stock/search?q=laptop&dispositivo=laptop&estado=disponible&page=1&per_page=10" \
-  -H "Authorization: Bearer $TOKEN"
-```
+Este proyecto forma parte de mi portfolio personal y tiene como objetivo:
 
-#### 4. Obtener Item por Código de Barras
+- Practicar desarrollo full-stack real
+- Mostrar organización y estructura de un proyecto completo
+- Servir como base para mejoras futuras
+- Poder explicarse con claridad en una entrevista técnica
 
-```bash
-# Buscar por código de barras
-curl "http://localhost:3000/api/stock/barcode/LAP001" \
-  -H "Authorization: Bearer $TOKEN"
-```
+No es un tutorial ni un boilerplate, sino un proyecto trabajado y mejorado de forma iterativa.
 
-#### 5. Actualizar Stock
+## Documentación
 
-```bash
-curl -X PUT http://localhost:3000/api/stock/1 \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "cantidad": 10,
-    "estado": "en_uso"
-  }'
-```
-
-#### 6. Eliminar Stock
-
-```bash
-curl -X DELETE http://localhost:3000/api/stock/1 \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-> 📖 **Documentación completa de la API:** [docs/API.md](docs/API.md)  
-> 🔍 **Swagger UI interactivo:** http://localhost:3000/api-docs (o http://localhost:9001/api-docs vía nginx)
-
-## Testing
-
-### Backend
-```bash
-# Ejecutar todos los tests
-pytest
-
-# Con cobertura
-pytest --cov=src --cov-report=html
-
-# Tests específicos
-pytest tests/test_auth.py -v
-pytest tests/test_stock_errors.py -v
-```
-
-### Frontend
-```bash
-# Ejecutar tests
-npm test
-
-# Con cobertura
-npm test -- --coverage
-
-# Linting
-npm run lint
-npm run lint:fix
-
-# Formateo
-npm run format
-```
-
-## 📚 Documentación
-
-- 📖 **API Documentation:** [docs/API.md](docs/API.md)
-- 🚀 **Deployment Guide:** [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
-- 🏗️ **Architecture:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- 🔒 **Security Guide:** [SECURITY.md](SECURITY.md)
-- 📦 **Release Notes:** [RELEASE_NOTES.md](RELEASE_NOTES.md)
-- 🔍 **Swagger UI:** http://localhost:3000/api-docs (o http://localhost:9001/api-docs vía nginx)
-
-## Stack Tecnológico
-
-### Backend
-- **Flask 3.0.0** - Framework web
-- **SQLAlchemy 2.0.25** - ORM
-- **Flask-JWT-Extended 4.6.0** - Autenticación
-- **Flask-Limiter** - Rate limiting
-- **PostgreSQL/SQLite** - Base de datos
-- **Gunicorn** - Servidor WSGI
-- **Swagger/Flasgger** - Documentación API
-
-### Frontend
-- **React 18.2.0** - Biblioteca UI
-- **Flux Pattern** - Gestión de estado
-- **Quagga2** - Escaneo de códigos de barras
-- **React Testing Library** - Testing
-- **ESLint + Prettier** - Calidad de código
-
-### Mobile
-- **React Native 0.72.0** - Framework móvil
-- **TypeScript** - Tipado estático
-
-### DevOps
-- **Docker** - Contenedores
-- **GitHub Actions** - CI/CD
-- **Dependabot** - Actualizaciones automáticas
-
-## Seguridad
-
-- **JWT con expiración** y renovación automática
-- **Rate limiting** en endpoints críticos
-- **Validación de entrada** en frontend y backend
-- **CORS configurado** restrictivamente
-- **Variables de entorno** para secretos (nunca hardcodeadas)
-- **SQL Injection protection** con ORM
-- **Error handling** sin exposición de información sensible
-
-> 🔒 **IMPORTANTE:** Lee [SECURITY.md](SECURITY.md) antes de desplegar en producción.  
-> Ver [VULNERABILITIES_REPORT.md](VULNERABILITIES_REPORT.md) para detalles de seguridad.
-
-## Casos de Uso
-
-### Caso 1: Pequeño Comercio
-**Escenario:** Tienda de electrónicos necesita controlar inventario de dispositivos.
-
-**Solución:**
-1. Admin crea usuarios para empleados
-2. Empleados escanean códigos de barras al recibir mercancía
-3. Consultan disponibilidad antes de ventas
-4. Registran movimientos de stock
-
-### Caso 2: Empresa de Servicios
-**Escenario:** Empresa de IT necesita rastrear equipos prestados a clientes.
-
-**Solución:**
-1. Registran equipos con códigos de barras
-2. Marcan estado (disponible/en_uso)
-3. Rastrean ubicación de cada item
-4. Registran mantenimientos
-
-## Despliegue
-
-### Docker (Recomendado)
-
-El proyecto incluye configuración completa de Docker con multi-stage builds para desarrollo y producción.
-
-```bash
-# Construir todas las imágenes
-docker-compose build
-
-# Iniciar todos los servicios
-docker-compose up -d
-
-# Ver logs
-docker-compose logs -f
-
-# Detener servicios
-docker-compose down
-```
-
-**Servicios disponibles:**
-- **Frontend**: http://localhost:7000
-- **Backend API**: http://localhost:3000
-- **Nginx (Reverse Proxy)**: http://localhost:9001
-- **PostgreSQL**: localhost:5432
-- **Elasticsearch**: http://localhost:9200
-
-### Despliegue Manual
-
-Ver guía completa en [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
-
-## Roadmap
-
-- [ ] Notificaciones push (mobile)
-- [ ] Exportación a Excel/PDF
-- [ ] Dashboard con gráficos
-- [ ] Integración con sistemas de punto de venta
-- [ ] API para terceros
-- [ ] Multi-tenant support
-
-## 🤝 Contribución
-
-Las contribuciones son bienvenidas. Por favor:
-
-1. 🍴 Fork el proyecto
-2. 🌿 Crea una rama (`git checkout -b feature/AmazingFeature`)
-3. 💾 Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. 📤 Push a la rama (`git push origin feature/AmazingFeature`)
-5. 🔄 Abre un [Pull Request](https://github.com/ChristianDVillar/proyecto-stock/compare)
-
-### Guía de Contribución
-
-- 📖 Lee [SECURITY.md](SECURITY.md) antes de contribuir
-- 📝 Sigue las plantillas de [Issues](.github/ISSUE_TEMPLATE/) y [Pull Requests](.github/pull_request_template.md)
-- ✅ Asegúrate de que los tests pasen
-- 📚 Actualiza la documentación si es necesario
-
-## Licencia
-
-Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para más detalles.
+- [API Documentation](docs/API.md)
+- [Deployment Guide](docs/DEPLOYMENT.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Security Guide](SECURITY.md)
+- [Implementation Summary](IMPLEMENTATION_SUMMARY.md)
 
 ## Autor
 
-**Christian David Villar Colodro**
-- GitHub: [@ChristianDVillar](https://github.com/ChristianDVillar)
+**Christian David Villar Colodro**  
+Desarrollador Full-Stack
 
-## Agradecimientos
+## Licencia
 
-- Flask Community
-- React Community
-- React Native Community
-- Todos los contribuidores de las librerías utilizadas
+MIT License - Ver [LICENSE](LICENSE) para más detalles.
 
 ---
 
 **Versión:** 1.0.0  
 **Última actualización:** 2025
 
-Para más información, consulta la [documentación completa](docs/).
