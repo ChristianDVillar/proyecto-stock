@@ -45,10 +45,12 @@ Login and get JWT token.
 **Request Body:**
 ```json
 {
-  "username": "admin",
-  "password": "admin123"
+  "username": "your_username",
+  "password": "your_password"
 }
 ```
+
+> ⚠️ **Nota de Seguridad:** Nunca uses credenciales por defecto en producción. Cambia las contraseñas inmediatamente después de la instalación.
 
 **Response (200):**
 ```json

@@ -1,17 +1,20 @@
 version: '3.8'
 
 # Variables de entorno compartidas
-# Puedes crear un archivo .env en la raíz del proyecto con estas variables
+# ⚠️ IMPORTANTE: 
+# - Los valores con sufijo "_dev_only" son SOLO para desarrollo local
+# - En PRODUCCIÓN, crea un archivo .env con valores seguros
+# - Ver .env.example y SECURITY.md para más información
 x-common-variables: &common-variables
   DB_HOST: postgres
   DB_PORT: 5432
-  DB_USER: stock_user
-  DB_PASSWORD: stock_password
-  DB_NAME: stock_db
-  DATABASE_URI: postgresql://stock_user:stock_password@postgres:5432/stock_db
+  DB_USER: ${DB_USER:-stock_user}
+  DB_PASSWORD: ${DB_PASSWORD:-stock_password_dev_only}
+  DB_NAME: ${DB_NAME:-stock_db}
+  DATABASE_URI: postgresql://${DB_USER:-stock_user}:${DB_PASSWORD:-stock_password_dev_only}@postgres:5432/${DB_NAME:-stock_db}
   ELASTICSEARCH_URL: http://elasticsearch:9200
-  ELASTIC_USERNAME: elastic
-  ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:-changeme}
+  ELASTIC_USERNAME: ${ELASTIC_USERNAME:-elastic}
+  ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:-changeme_dev_only}
 
 volumes:
   postgres_data:    # Definición del volumen para PostgreSQL
@@ -41,15 +44,15 @@ services:
     image: postgres:15-alpine
     restart: always
     environment:
-      POSTGRES_USER: stock_user
-      POSTGRES_PASSWORD: stock_password
-      POSTGRES_DB: stock_db
+      POSTGRES_USER: ${DB_USER:-stock_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-stock_password_dev_only}
+      POSTGRES_DB: ${DB_NAME:-stock_db}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U stock_user -d stock_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-stock_user} -d ${DB_NAME:-stock_db}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -80,7 +83,9 @@ services:
       SECRET_KEY: ${SECRET_KEY}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-${SECRET_KEY}}
       FLASK_ENV: production
-      CORS_ORIGINS: http://localhost:7000,http://localhost:9001
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:7000,http://localhost:9001}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123_dev_only}
     volumes:
       - ./instance:/app/instance
     depends_on:
@@ -103,6 +108,8 @@ services:
     environment:
       <<: *common-variables
       FLASK_ENV: production
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123_dev_only}
     volumes:
       - ./scripts:/app/scripts:ro
     depends_on:
@@ -119,7 +126,7 @@ services:
       - discovery.type=single-node
       - xpack.security.enabled=true
       - ELASTIC_USERNAME=elastic
-      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:-changeme}
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:-changeme_dev_only}
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
       - bootstrap.memory_lock=true
     ports:
@@ -127,7 +134,7 @@ services:
     healthcheck:
       test: [
         "CMD-SHELL",
-        "curl -s -u elastic:${ELASTIC_PASSWORD:-changeme} http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"' || exit 1"
+        "curl -s -u ${ELASTIC_USERNAME:-elastic}:${ELASTIC_PASSWORD:-changeme_dev_only} http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"' || exit 1"
       ]
       interval: 10s
       timeout: 10s

@@ -29,20 +29,26 @@ def init_database():
             print("✓ Tables created successfully")
             
             # Crear usuario admin si no existe
-            admin_user = User.query.filter_by(username='admin').first()
+            admin_username = os.environ.get('ADMIN_USERNAME', 'admin')
+            admin_password = os.environ.get('ADMIN_PASSWORD', 'admin123')
+            
+            admin_user = User.query.filter_by(username=admin_username).first()
             if not admin_user:
                 print("Creating default admin user...")
                 admin_user = User(
-                    username='admin',
-                    password=generate_password_hash('admin123'),
+                    username=admin_username,
+                    password=generate_password_hash(admin_password),
                     user_type=UserTypeEnum.admin,
                     is_active=True
                 )
                 db.session.add(admin_user)
                 db.session.commit()
                 print("✓ Admin user created successfully")
-                print("  Username: admin")
-                print("  Password: admin123")
+                print(f"  Username: {admin_username}")
+                if env == 'development':
+                    print(f"  Password: {admin_password} (⚠️ Change in production!)")
+                else:
+                    print("  Password: [HIDDEN] (set via ADMIN_PASSWORD env var)")
             else:
                 print("✓ Admin user already exists")
             

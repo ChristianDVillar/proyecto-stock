@@ -95,12 +95,19 @@ La forma más rápida de iniciar el proyecto:
 git clone https://github.com/ChristianDVillar/proyecto-stock.git
 cd proyecto-stock
 
+# ⚠️ IMPORTANTE: Para producción, crea un archivo .env con valores seguros
+# Ver .env.example y SECURITY.md para más información
+# Para desarrollo local, puedes usar los valores por defecto
+
 # Construir e iniciar todos los servicios
 docker-compose up -d
 
 # Ver logs
 docker-compose logs -f
 ```
+
+> 🔒 **Seguridad:** Los valores por defecto (con sufijo `_dev_only`) son **SOLO para desarrollo**.  
+> En **producción**, configura todas las variables de entorno en un archivo `.env`. Ver [SECURITY.md](SECURITY.md).
 
 ¡Listo! El proyecto estará disponible en:
 - **Frontend**: http://localhost:7000
@@ -147,8 +154,12 @@ npm run android  # o npm run ios
 
 ## Uso
 
-### Credenciales por Defecto
-- **Usuario Admin:** `admin` / `admin123`
+### Credenciales Iniciales
+
+> ⚠️ **IMPORTANTE:** Las credenciales por defecto solo son para desarrollo. En producción, cambia inmediatamente la contraseña del usuario admin.
+
+Al iniciar la aplicación por primera vez, se crea un usuario administrador por defecto. Consulta la documentación de despliegue para más detalles sobre cómo configurar credenciales seguras en producción.
+
 - **Usuario Regular:** Crear desde panel de administración
 
 ### Flujo de Trabajo Típico
@@ -163,12 +174,12 @@ npm run android  # o npm run ios
 #### 1. Autenticación y Obtención de Token
 
 ```bash
-# Login
+# Login (reemplaza USERNAME y PASSWORD con tus credenciales)
 curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "admin",
-    "password": "admin123"
+    "username": "USERNAME",
+    "password": "PASSWORD"
   }'
 
 # Respuesta:
@@ -326,11 +337,12 @@ npm run format
 - **Rate limiting** en endpoints críticos
 - **Validación de entrada** en frontend y backend
 - **CORS configurado** restrictivamente
-- **Variables de entorno** para secretos
+- **Variables de entorno** para secretos (nunca hardcodeadas)
 - **SQL Injection protection** con ORM
 - **Error handling** sin exposición de información sensible
 
-Ver [VULNERABILITIES_REPORT.md](VULNERABILITIES_REPORT.md) para detalles de seguridad.
+> 🔒 **IMPORTANTE:** Lee [SECURITY.md](SECURITY.md) antes de desplegar en producción.  
+> Ver [VULNERABILITIES_REPORT.md](VULNERABILITIES_REPORT.md) para detalles de seguridad.
 
 ## Casos de Uso
 

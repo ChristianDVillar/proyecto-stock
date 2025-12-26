@@ -14,7 +14,16 @@ INSTANCE_DIR = BASE_DIR / 'instance'
 
 class Config:
     """Base configuration"""
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+    # ⚠️ SECURITY: SECRET_KEY must be set via environment variable in production
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+    if not SECRET_KEY:
+        import warnings
+        warnings.warn(
+            "SECRET_KEY not set! Using insecure default. Set SECRET_KEY environment variable.",
+            UserWarning
+        )
+        SECRET_KEY = 'dev-secret-key-change-in-production'
+    
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', SECRET_KEY)
     JWT_ACCESS_TOKEN_EXPIRES_DAYS = int(os.environ.get('JWT_ACCESS_TOKEN_EXPIRES_DAYS', '1'))
     

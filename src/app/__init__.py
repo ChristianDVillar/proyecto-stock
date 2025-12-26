@@ -218,14 +218,18 @@ def setup_swagger(app):
 
 def init_default_admin():
     """Initialize default admin user if not exists"""
+    import os
     from .models import User, UserTypeEnum
     from werkzeug.security import generate_password_hash
     
-    admin_user = User.query.filter_by(username='admin').first()
+    admin_username = os.environ.get('ADMIN_USERNAME', 'admin')
+    admin_password = os.environ.get('ADMIN_PASSWORD', 'admin123')
+    
+    admin_user = User.query.filter_by(username=admin_username).first()
     if not admin_user:
         admin_user = User(
-            username='admin',
-            password=generate_password_hash('admin123'),
+            username=admin_username,
+            password=generate_password_hash(admin_password),
             user_type=UserTypeEnum.admin,
             is_active=True
         )
