@@ -4,7 +4,7 @@ import '../../styles/Footer.css';
 const Footer = () => {
     return (
         <footer className="footer">
-            <p>&copy; 2024 Control de Stock. Todos los derechos reservados.</p>
+            <p>&copy; 2025 Control de Stock. Todos los derechos reservados.</p>
         </footer>
     );
 };
