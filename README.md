@@ -1,21 +1,34 @@
-# Proyecto Stock - Sistema de Gestión de Inventario
+# 📦 Proyecto Stock
 
-Sistema completo de gestión de inventario full-stack desarrollado con Flask, React y React Native. Diseñado para pequeñas y medianas empresas que necesitan control eficiente de su inventario.
+Sistema completo de **gestión de inventario** con backend, frontend web y aplicación móvil.
 
-## 📊 Badges
+[![CI](https://github.com/ChristianDVillar/proyecto-stock/actions/workflows/ci.yml/badge.svg)](https://github.com/ChristianDVillar/proyecto-stock/actions)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.11+-blue)](https://www.python.org/)
+[![React](https://img.shields.io/badge/React-18.2.0-blue)](https://reactjs.org/)
+[![Flask](https://img.shields.io/badge/Flask-3.0.0-black)](https://flask.palletsprojects.com/)
+[![Node](https://img.shields.io/badge/Node-18+-green)](https://nodejs.org/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue)](docker-compose.yml)
+[![Coverage](https://img.shields.io/codecov/c/github/ChristianDVillar/proyecto-stock?label=coverage)](https://codecov.io/gh/ChristianDVillar/proyecto-stock)
 
-![Version](https://img.shields.io/badge/version-0.1.0-blue)
-![Build Status](https://img.shields.io/github/actions/workflow/status/ChristianDVillar/proyecto-stock/ci.yml?branch=main&label=build)
-![Coverage](https://img.shields.io/codecov/c/github/ChristianDVillar/proyecto-stock?label=coverage)
-![Python](https://img.shields.io/badge/python-3.11+-green)
-![Node](https://img.shields.io/badge/node-18+-green)
-![Flask](https://img.shields.io/badge/Flask-3.0.0-red)
-![React](https://img.shields.io/badge/React-18.2.0-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
-![Docker](https://img.shields.io/badge/docker-ready-blue)
-![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)
+---
 
-## ¿Qué Problema Resuelve?
+## 🚀 Características
+
+- ✅ **Autenticación JWT** con renovación automática
+- ✅ **CRUD completo de stock** con validación robusta
+- ✅ **Escaneo de códigos de barras** (cámara e imagen)
+- ✅ **Búsqueda avanzada** con filtros y paginación
+- ✅ **Frontend web** (React con patrón Flux)
+- ✅ **Backend API** (Flask con Application Factory)
+- ✅ **App móvil** (React Native para iOS y Android)
+- ✅ **Tests automatizados** (pytest + React Testing Library)
+- ✅ **Documentación técnica** y de seguridad completa
+- ✅ **Docker** con multi-stage builds
+- ✅ **CI/CD** con GitHub Actions
+- ✅ **Rate limiting** y protección contra abuso
+
+## 🎯 ¿Qué Problema Resuelve?
 
 **Problema:** Las pequeñas empresas y comercios necesitan una solución accesible para gestionar su inventario sin depender de sistemas costosos o complejos.
 
@@ -27,30 +40,7 @@ Sistema completo de gestión de inventario full-stack desarrollado con Flask, Re
 - **Búsqueda avanzada** con filtros y paginación
 - **Trazabilidad** de movimientos y mantenimientos
 
-## Arquitectura
-
-```
-┌─────────────┐  ┌─────────────┐  ┌─────────────┐
-│  Web App    │  │ Mobile App  │  │ Admin Panel │
-│  (React)    │  │(React Native)│ │(Flask-Admin)│
-└──────┬──────┘  └──────┬──────┘  └──────┬──────┘
-       │                │                 │
-       └────────────────┼─────────────────┘
-                        │
-              ┌─────────▼─────────┐
-              │  Backend API      │
-              │  (Flask + JWT)    │
-              └─────────┬─────────┘
-                        │
-              ┌─────────▼─────────┐
-              │   Database        │
-              │ (SQLite/PostgreSQL)│
-              └───────────────────┘
-```
-
-**Ver arquitectura completa:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-
-## Características Principales
+## 🏗️ Arquitectura
 
 ### Backend (Flask)
 - **Arquitectura modular** con Application Factory Pattern
@@ -297,12 +287,14 @@ npm run lint:fix
 npm run format
 ```
 
-## Documentación
+## 📚 Documentación
 
-- **API Documentation:** [docs/API.md](docs/API.md)
-- **Deployment Guide:** [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
-- **Architecture:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- **Swagger UI:** http://localhost:3000/api-docs (o http://localhost:9001/api-docs vía nginx)
+- 📖 **API Documentation:** [docs/API.md](docs/API.md)
+- 🚀 **Deployment Guide:** [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+- 🏗️ **Architecture:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- 🔒 **Security Guide:** [SECURITY.md](SECURITY.md)
+- 📦 **Release Notes:** [RELEASE_NOTES.md](RELEASE_NOTES.md)
+- 🔍 **Swagger UI:** http://localhost:3000/api-docs (o http://localhost:9001/api-docs vía nginx)
 
 ## Stack Tecnológico
 
@@ -404,15 +396,22 @@ Ver guía completa en [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 - [ ] API para terceros
 - [ ] Multi-tenant support
 
-## Contribución
+## 🤝 Contribución
 
 Las contribuciones son bienvenidas. Por favor:
 
-1. Fork el proyecto
-2. Crea una rama (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
+1. 🍴 Fork el proyecto
+2. 🌿 Crea una rama (`git checkout -b feature/AmazingFeature`)
+3. 💾 Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. 📤 Push a la rama (`git push origin feature/AmazingFeature`)
+5. 🔄 Abre un [Pull Request](https://github.com/ChristianDVillar/proyecto-stock/compare)
+
+### Guía de Contribución
+
+- 📖 Lee [SECURITY.md](SECURITY.md) antes de contribuir
+- 📝 Sigue las plantillas de [Issues](.github/ISSUE_TEMPLATE/) y [Pull Requests](.github/pull_request_template.md)
+- ✅ Asegúrate de que los tests pasen
+- 📚 Actualiza la documentación si es necesario
 
 ## Licencia
 
@@ -432,7 +431,7 @@ Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE](L
 
 ---
 
-**Versión:** 0.1.0  
-**Última actualización:** 2024
+**Versión:** 1.0.0  
+**Última actualización:** 2025
 
 Para más información, consulta la [documentación completa](docs/).

@@ -1,0 +1,75 @@
+name: ✨ Feature Request
+description: Sugerir una nueva funcionalidad o mejora
+title: "[FEATURE]: "
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por tu sugerencia. Por favor, completa la siguiente información.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 🎯 Descripción de la Funcionalidad
+      description: Una descripción clara y concisa de la funcionalidad que te gustaría ver
+      placeholder: Describe la funcionalidad...
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: 💡 Motivación
+      description: ¿Por qué esta funcionalidad sería útil? ¿Qué problema resolvería?
+      placeholder: Explica por qué esta funcionalidad es necesaria...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: 📐 Propuesta de Solución
+      description: Describe cómo te imaginas que funcionaría esta funcionalidad
+      placeholder: |
+        - Frontend: [Descripción de cambios en la UI]
+        - Backend: [Descripción de cambios en la API]
+        - Base de Datos: [Si aplica, cambios en el esquema]
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 🔄 Alternativas Consideradas
+      description: Describe alternativas o soluciones que hayas considerado
+      placeholder: Otras soluciones que consideraste...
+    validations:
+      required: false
+
+  - type: textarea
+    id: mockups
+    attributes:
+      label: 📸 Mockups/Wireframes
+      description: Si tienes diseños o mockups, compártelos aquí
+      placeholder: Arrastra y suelta imágenes aquí...
+
+  - type: textarea
+    id: references
+    attributes:
+      label: 🔗 Referencias
+      description: Si hay ejemplos de implementaciones similares, compártelos
+      placeholder: Enlaces a ejemplos similares...
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: ✅ Checklist
+      options:
+        - label: He verificado que esta funcionalidad no existe actualmente
+          required: true
+        - label: He considerado alternativas
+          required: false
+        - label: He proporcionado suficiente contexto sobre la funcionalidad
+          required: true
+

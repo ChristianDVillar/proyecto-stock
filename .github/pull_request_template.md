@@ -2,6 +2,18 @@
 
 Describe brevemente los cambios realizados en este PR.
 
+## ✅ Cambios Realizados
+
+Marca las áreas que fueron modificadas:
+
+- [ ] Backend (Flask/Python)
+- [ ] Frontend (React)
+- [ ] Mobile (React Native)
+- [ ] Tests
+- [ ] Documentación
+- [ ] Configuración (Docker, CI/CD, etc.)
+- [ ] Otro: ___________
+
 ## 🔗 Issue Relacionado
 
 Closes #(número del issue)
@@ -19,14 +31,20 @@ Marca las opciones que apliquen:
 - [ ] ⚡ Performance (mejoras de rendimiento)
 - [ ] ✅ Tests (agregar o corregir tests)
 
-## 🧪 Cómo se ha Probado
+## 🧪 Tests
 
-Describe las pruebas que has realizado para verificar tus cambios:
+¿Se han ejecutado tests?
 
-- [ ] Tests unitarios pasan
-- [ ] Tests de integración pasan
-- [ ] Probado manualmente en [navegador/entorno]
-- [ ] Verificado que no rompe funcionalidad existente
+- [ ] Sí - Todos los tests pasan
+- [ ] Sí - Tests unitarios pasan
+- [ ] Sí - Tests de integración pasan
+- [ ] Sí - Probado manualmente
+- [ ] No - No se requieren tests para este cambio
+
+**Detalles de pruebas:**
+```
+Describe las pruebas realizadas...
+```
 
 ## 📸 Capturas de Pantalla
 

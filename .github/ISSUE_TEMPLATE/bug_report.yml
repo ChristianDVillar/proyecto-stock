@@ -1,0 +1,126 @@
+name: 🐛 Bug Report
+description: Reportar un error o comportamiento inesperado
+title: "[BUG]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por reportar este bug. Por favor, completa la siguiente información.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 📋 Descripción del Bug
+      description: Una descripción clara y concisa del bug
+      placeholder: Describe qué está pasando...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 🔄 Pasos para Reproducir
+      description: Describe los pasos para reproducir el comportamiento
+      placeholder: |
+        1. Ir a '...'
+        2. Hacer clic en '...'
+        3. Desplazarse hasta '...'
+        4. Ver error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: ✅ Comportamiento Esperado
+      description: ¿Qué esperabas que sucediera?
+      placeholder: Describe el comportamiento esperado...
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: ❌ Comportamiento Actual
+      description: ¿Qué está sucediendo realmente?
+      placeholder: Describe el comportamiento actual...
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 📸 Capturas de Pantalla
+      description: Si es aplicable, agrega capturas de pantalla
+      placeholder: Arrastra y suelta imágenes aquí...
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: 🖥️ Entorno
+      description: Selecciona tu entorno
+      options:
+        - Desarrollo Local
+        - Docker
+        - Producción
+        - Otro
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Sistema Operativo
+      placeholder: Windows 10, macOS 13, Ubuntu 22.04, etc.
+    validations:
+      required: false
+
+  - type: input
+    id: browser
+    attributes:
+      label: Navegador (si aplica)
+      placeholder: Chrome 120, Firefox 121, Safari 17, etc.
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: Versión del Proyecto
+      placeholder: 0.1.0
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 📝 Logs
+      description: Si hay logs relevantes, pégalos aquí
+      placeholder: |
+        ```
+        Pega los logs aquí
+        ```
+      render: shell
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 🔍 Contexto Adicional
+      description: Cualquier otro contexto sobre el problema
+      placeholder: Información adicional...
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: ✅ Checklist
+      options:
+        - label: He verificado que el bug no ha sido reportado anteriormente
+          required: true
+        - label: He incluido todos los pasos para reproducir el bug
+          required: true
+        - label: He incluido información del entorno
+          required: false
+        - label: He incluido logs relevantes si están disponibles
+          required: false
+

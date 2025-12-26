@@ -6,4 +6,7 @@ contact_links:
   - name: 💬 Discusiones
     url: https://github.com/ChristianDVillar/proyecto-stock/discussions
     about: Únete a las discusiones de la comunidad
+  - name: 🔒 Seguridad
+    url: https://github.com/ChristianDVillar/proyecto-stock/blob/main/SECURITY.md
+    about: Reportar vulnerabilidades de seguridad
 
