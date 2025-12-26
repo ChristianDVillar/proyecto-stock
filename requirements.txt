@@ -11,7 +11,7 @@ flask-login==0.6.3
 
 # Database
 SQLAlchemy==2.0.45
-psycopg2-binary==2.9.9
+psycopg2-binary==2.9.11
 
 # API Documentation
 flask-swagger-ui==4.11.1
