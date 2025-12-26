@@ -1,0 +1,9 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📚 Documentación
+    url: https://github.com/ChristianDVillar/proyecto-stock/tree/main/docs
+    about: Consulta la documentación del proyecto
+  - name: 💬 Discusiones
+    url: https://github.com/ChristianDVillar/proyecto-stock/discussions
+    about: Únete a las discusiones de la comunidad
+

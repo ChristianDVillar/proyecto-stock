@@ -2,12 +2,18 @@
 
 Sistema completo de gestión de inventario full-stack desarrollado con Flask, React y React Native. Diseñado para pequeñas y medianas empresas que necesitan control eficiente de su inventario.
 
+## 📊 Badges
+
 ![Version](https://img.shields.io/badge/version-0.1.0-blue)
+![Build Status](https://img.shields.io/github/actions/workflow/status/ChristianDVillar/proyecto-stock/ci.yml?branch=main&label=build)
+![Coverage](https://img.shields.io/codecov/c/github/ChristianDVillar/proyecto-stock?label=coverage)
 ![Python](https://img.shields.io/badge/python-3.11+-green)
 ![Node](https://img.shields.io/badge/node-18+-green)
 ![Flask](https://img.shields.io/badge/Flask-3.0.0-red)
 ![React](https://img.shields.io/badge/React-18.2.0-blue)
-![License](https://img.shields.io/badge/license-Private-red)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Docker](https://img.shields.io/badge/docker-ready-blue)
+![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)
 
 ## ¿Qué Problema Resuelve?
 
@@ -78,15 +84,39 @@ Sistema completo de gestión de inventario full-stack desarrollado con Flask, Re
 - **PostgreSQL** 15+ (opcional, SQLite por defecto)
 - **npm** o **yarn**
 
-## Instalación Rápida
+## 🚀 Instalación Rápida
 
-### 1. Clonar Repositorio
+### Opción 1: Docker (Recomendado) ⚡
+
+La forma más rápida de iniciar el proyecto:
+
+```bash
+# Clonar repositorio
+git clone https://github.com/ChristianDVillar/proyecto-stock.git
+cd proyecto-stock
+
+# Construir e iniciar todos los servicios
+docker-compose up -d
+
+# Ver logs
+docker-compose logs -f
+```
+
+¡Listo! El proyecto estará disponible en:
+- **Frontend**: http://localhost:7000
+- **Backend API**: http://localhost:3000
+- **Nginx Proxy**: http://localhost:9001
+- **API Docs (Swagger)**: http://localhost:9001/api-docs
+
+### Opción 2: Instalación Manual
+
+#### 1. Clonar Repositorio
 ```bash
 git clone https://github.com/ChristianDVillar/proyecto-stock.git
 cd proyecto-stock
 ```
 
-### 2. Backend
+#### 2. Backend
 ```bash
 # Instalar dependencias
 pip install -r requirements.txt
@@ -99,7 +129,7 @@ cp .env.example .env
 python src/run.py
 ```
 
-### 3. Frontend
+#### 3. Frontend
 ```bash
 # Instalar dependencias
 npm install
@@ -108,7 +138,7 @@ npm install
 npm start
 ```
 
-### 4. Mobile (Opcional)
+#### 4. Mobile (Opcional)
 ```bash
 cd Stocker/StockerMobile
 npm install
@@ -128,30 +158,102 @@ npm run android  # o npm run ios
 3. **Consultar** → Buscar items con filtros avanzados
 4. **Gestionar** → Ver detalles, movimientos y mantenimientos
 
-### Ejemplo de Uso de API
+### Ejemplos de Uso de API
+
+#### 1. Autenticación y Obtención de Token
 
 ```bash
 # Login
 curl -X POST http://localhost:5000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin123"}'
+  -d '{
+    "username": "admin",
+    "password": "admin123"
+  }'
+
+# Respuesta:
+# {
+#   "access_token": "eyJ0eXAiOiJKV1QiLCJhbGc...",
+#   "user": {
+#     "id": 1,
+#     "username": "admin",
+#     "user_type": "admin"
+#   }
+# }
+```
+
+#### 2. Crear Item de Stock
+
+```bash
+# Guardar el token en una variable
+TOKEN="tu-token-aqui"
 
 # Crear stock (requiere token)
 curl -X POST http://localhost:5000/api/stock \
-  -H "Authorization: Bearer <token>" \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "barcode": "LAP001",
     "inventario": "INV001",
     "dispositivo": "laptop",
     "modelo": "Dell XPS 15",
-    "cantidad": 5
+    "cantidad": 5,
+    "estado": "disponible"
   }'
 
-# Buscar stock
-curl "http://localhost:5000/api/stock/search?q=laptop&page=1" \
-  -H "Authorization: Bearer <token>"
+# Respuesta:
+# {
+#   "message": "Stock creado exitosamente",
+#   "stock": {
+#     "id": 1,
+#     "barcode": "LAP001",
+#     "modelo": "Dell XPS 15",
+#     ...
+#   }
+# }
 ```
+
+#### 3. Buscar Stock
+
+```bash
+# Búsqueda simple
+curl "http://localhost:5000/api/stock/search?q=laptop&page=1" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Búsqueda con filtros avanzados
+curl "http://localhost:5000/api/stock/search?q=laptop&dispositivo=laptop&estado=disponible&page=1&per_page=10" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+#### 4. Obtener Item por Código de Barras
+
+```bash
+# Buscar por código de barras
+curl "http://localhost:5000/api/stock/barcode/LAP001" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+#### 5. Actualizar Stock
+
+```bash
+curl -X PUT http://localhost:5000/api/stock/1 \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "cantidad": 10,
+    "estado": "en_uso"
+  }'
+```
+
+#### 6. Eliminar Stock
+
+```bash
+curl -X DELETE http://localhost:5000/api/stock/1 \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+> 📖 **Documentación completa de la API:** [docs/API.md](docs/API.md)  
+> 🔍 **Swagger UI interactivo:** http://localhost:5000/api-docs
 
 ## Testing
 
@@ -253,12 +355,32 @@ Ver [VULNERABILITIES_REPORT.md](VULNERABILITIES_REPORT.md) para detalles de segu
 ## Despliegue
 
 ### Docker (Recomendado)
+
+El proyecto incluye configuración completa de Docker con multi-stage builds para desarrollo y producción.
+
 ```bash
-cd backend
+# Construir todas las imágenes
+docker-compose build
+
+# Iniciar todos los servicios
 docker-compose up -d
+
+# Ver logs
+docker-compose logs -f
+
+# Detener servicios
+docker-compose down
 ```
 
-### Producción
+**Servicios disponibles:**
+- **Frontend**: http://localhost:7000
+- **Backend API**: http://localhost:3000
+- **Nginx (Reverse Proxy)**: http://localhost:9001
+- **PostgreSQL**: localhost:5432
+- **Elasticsearch**: http://localhost:9200
+
+### Despliegue Manual
+
 Ver guía completa en [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
 ## Roadmap
@@ -282,7 +404,7 @@ Las contribuciones son bienvenidas. Por favor:
 
 ## Licencia
 
-Este proyecto es privado.
+Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para más detalles.
 
 ## Autor
 

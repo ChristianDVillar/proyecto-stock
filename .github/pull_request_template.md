@@ -1,0 +1,51 @@
+## 📋 Descripción
+
+Describe brevemente los cambios realizados en este PR.
+
+## 🔗 Issue Relacionado
+
+Closes #(número del issue)
+
+## 🔄 Tipo de Cambio
+
+Marca las opciones que apliquen:
+
+- [ ] 🐛 Bug fix (cambio que corrige un issue)
+- [ ] ✨ Nueva funcionalidad (cambio que agrega funcionalidad sin romper existente)
+- [ ] 💥 Breaking change (cambio que rompe funcionalidad existente)
+- [ ] 📚 Documentación (cambios solo en documentación)
+- [ ] 🎨 Estilo/Formato (cambios que no afectan la lógica)
+- [ ] ♻️ Refactorización (cambios que no corrigen bugs ni agregan funcionalidad)
+- [ ] ⚡ Performance (mejoras de rendimiento)
+- [ ] ✅ Tests (agregar o corregir tests)
+
+## 🧪 Cómo se ha Probado
+
+Describe las pruebas que has realizado para verificar tus cambios:
+
+- [ ] Tests unitarios pasan
+- [ ] Tests de integración pasan
+- [ ] Probado manualmente en [navegador/entorno]
+- [ ] Verificado que no rompe funcionalidad existente
+
+## 📸 Capturas de Pantalla
+
+Si aplica, agrega capturas de pantalla para mostrar los cambios visuales.
+
+## ✅ Checklist
+
+Antes de solicitar la revisión, asegúrate de:
+
+- [ ] Mi código sigue las guías de estilo del proyecto
+- [ ] He realizado una auto-revisión de mi código
+- [ ] He comentado mi código, especialmente en áreas difíciles de entender
+- [ ] He actualizado la documentación correspondiente
+- [ ] Mis cambios no generan nuevos warnings
+- [ ] He agregado tests que prueban que mi fix/funcionalidad funciona
+- [ ] Los tests nuevos y existentes pasan localmente
+- [ ] He actualizado el CHANGELOG.md si es necesario
+
+## 📝 Notas Adicionales
+
+Cualquier información adicional que los revisores deban saber.
+
