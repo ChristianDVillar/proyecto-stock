@@ -23,12 +23,8 @@ def init_database():
     
     with app.app_context():
         try:
-            # Crear todas las tablas
-            print("Creating database tables...")
-            db.create_all()
-            print("✓ Tables created successfully")
-            
-            # Crear usuario admin si no existe
+            # Las tablas deben existir ya (creadas por el servicio migrate / flask db upgrade).
+            # Solo creamos usuario admin si no existe.
             admin_username = os.environ.get('ADMIN_USERNAME', 'admin')
             admin_password = os.environ.get('ADMIN_PASSWORD', 'admin123')
             

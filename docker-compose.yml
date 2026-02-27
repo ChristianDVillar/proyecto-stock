@@ -12,14 +12,17 @@ x-common-variables: &common-variables
   DB_PASSWORD: ${DB_PASSWORD:-stock_password_dev_only}
   DB_NAME: ${DB_NAME:-stock_db}
   DATABASE_URI: postgresql://${DB_USER:-stock_user}:${DB_PASSWORD:-stock_password_dev_only}@postgres:5432/${DB_NAME:-stock_db}
+  RATELIMIT_STORAGE_URL: redis://redis:6379/0
   ELASTICSEARCH_URL: http://elasticsearch:9200
   ELASTIC_USERNAME: ${ELASTIC_USERNAME:-elastic}
   ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:-changeme_dev_only}
 
 volumes:
-  postgres_data:    # Definición del volumen para PostgreSQL
+  postgres_data:
     driver: local
-  es_data: # Volumen para Elasticsearch
+  redis_data:
+    driver: local
+  es_data:
     driver: local
 
 networks:
@@ -59,6 +62,21 @@ services:
     networks:
       - stock_network
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - stock_network
+
   client:
     build:
       context: ./frontend
@@ -91,6 +109,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
       db-init:
         condition: service_completed_successfully
       elasticsearch:
@@ -98,6 +118,21 @@ services:
     networks:
       - stock_network
     restart: unless-stopped
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    command: sh -c "cd /app && PYTHONPATH=src FLASK_APP=src/run.py flask db upgrade"
+    environment:
+      <<: *common-variables
+      FLASK_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - stock_network
 
   db-init:
     build:
@@ -113,8 +148,8 @@ services:
     volumes:
       - ./scripts:/app/scripts:ro
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     networks:
       - stock_network
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Quagga from '@ericblade/quagga2';
+import { BrowserMultiFormatReader } from '@zxing/browser';
 import { FaTrash, FaPencilAlt, FaCamera, FaBarcode, FaStop } from 'react-icons/fa';
 import '../../styles/NewInventory.css';
 import DeviceTypeSelector from './DeviceTypeSelector';
@@ -20,6 +21,11 @@ const NewInventory = () => {
     const [rows, setRows] = useState([]);
     const [isEditing, setIsEditing] = useState(false);
     const [editRowId, setEditRowId] = useState(null);
+
+    const BARCODE_READERS = [
+        "ean_reader", "ean_8_reader", "code_128_reader", "code_39_reader",
+        "upc_reader", "upc_e_reader", "codabar_reader", "i2of5_reader"
+    ];
 
     useEffect(() => {
         return () => {
@@ -66,14 +72,7 @@ const NewInventory = () => {
                     target: videoRef.current
                 },
                 decoder: {
-                    readers: [
-                        "ean_reader",
-                        "ean_8_reader",
-                        "code_128_reader",
-                        "code_39_reader",
-                        "upc_reader",
-                        "upc_e_reader"
-                    ]
+                    readers: BARCODE_READERS
                 },
                 locate: true
             };
@@ -117,68 +116,134 @@ const NewInventory = () => {
         }
     };
 
+    const scaleImageToDataUrl = (dataUrl, maxSize = 1200) => {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                const w = img.naturalWidth || img.width;
+                const h = img.naturalHeight || img.height;
+                const scale = maxSize / Math.max(w, h);
+                const width = Math.round(w * scale);
+                const height = Math.round(h * scale);
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                try {
+                    resolve(canvas.toDataURL('image/png'));
+                } catch (e) {
+                    resolve(dataUrl);
+                }
+            };
+            img.onerror = () => resolve(dataUrl);
+            img.src = dataUrl;
+        });
+    };
+
+    const tryDecodeImage = async (dataUrl) => {
+        const configs = [
+            { size: 1200, patchSize: "large", halfSample: false, singleChannel: false },
+            { size: 1200, patchSize: "medium", halfSample: false, singleChannel: true },
+            { size: 800, patchSize: "large", halfSample: true, singleChannel: false },
+            { size: 1600, patchSize: "large", halfSample: false, singleChannel: false },
+            { size: 800, patchSize: "medium", halfSample: false, singleChannel: false },
+            { size: 600, patchSize: "medium", halfSample: true, singleChannel: true },
+            { size: 1000, patchSize: "large", halfSample: false, singleChannel: true }
+        ];
+
+        const runDecode = async (src) => {
+            for (const { size, patchSize, halfSample, singleChannel } of configs) {
+                try {
+                    const result = await Quagga.decodeSingle({
+                        decoder: {
+                            readers: BARCODE_READERS,
+                            multiple: false
+                        },
+                        locate: true,
+                        src,
+                        numOfWorkers: 0,
+                        inputStream: {
+                            size,
+                            singleChannel: !!singleChannel
+                        },
+                        locator: {
+                            patchSize: patchSize || "medium",
+                            halfSample: !!halfSample
+                        }
+                    });
+                    if (result && result.codeResult && result.codeResult.code) {
+                        return result.codeResult.code;
+                    }
+                } catch (_) {
+                    continue;
+                }
+            }
+            return null;
+        };
+
+        let code = await runDecode(dataUrl);
+        if (code) return code;
+
+        const scaled1200 = await scaleImageToDataUrl(dataUrl, 1200);
+        if (scaled1200 !== dataUrl) {
+            code = await runDecode(scaled1200);
+            if (code) return code;
+        }
+
+        const scaled800 = await scaleImageToDataUrl(dataUrl, 800);
+        if (scaled800 !== dataUrl) {
+            code = await runDecode(scaled800);
+            if (code) return code;
+        }
+
+        // Motor alternativo: ZXing (suele detectar mejor en algunas imágenes)
+        code = await tryDecodeWithZXing(dataUrl);
+        if (code) return code;
+        code = await tryDecodeWithZXing(scaled1200 || dataUrl);
+        if (code) return code;
+        code = await tryDecodeWithZXing(scaled800 || dataUrl);
+        if (code) return code;
+
+        return null;
+    };
+
+    const tryDecodeWithZXing = async (dataUrl) => {
+        if (!dataUrl) return null;
+        try {
+            const codeReader = new BrowserMultiFormatReader();
+            const result = await codeReader.decodeFromImageUrl(dataUrl);
+            if (result && result.getText()) {
+                return result.getText().trim();
+            }
+        } catch (_) {
+            // ZXing lanza si no encuentra código; ignorar
+        }
+        return null;
+    };
+
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
         const reader = new FileReader();
         reader.onload = async (event) => {
-            setImageSrc(event.target.result);
+            const dataUrl = event.target.result;
+            setImageSrc(dataUrl);
 
             try {
-                const result = await Quagga.decodeSingle({
-                    decoder: {
-                        readers: [
-                            "ean_reader",
-                            "ean_8_reader",
-                            "code_128_reader",
-                            "code_39_reader",
-                            "upc_reader",
-                            "upc_e_reader",
-                            "codabar_reader",
-                            "i2of5_reader"
-                        ],
-                        multiple: false
-                    },
-                    locate: true,
-                    src: event.target.result,
-                    numOfWorkers: navigator.hardwareConcurrency || 4,
-                    inputStream: {
-                        size: 1600,
-                        singleChannel: false
-                    },
-                    locator: {
-                        patchSize: "large",
-                        halfSample: false
-                    },
-                    debug: {
-                        showCanvas: true,
-                        showPatches: true,
-                        showFoundPatches: true,
-                        showSkeleton: true,
-                        showLabels: true,
-                        showPatchLabels: true,
-                        showRemainingPatchLabels: true,
-                        boxFromPatches: {
-                            showTransformed: true,
-                            showTransformedBox: true,
-                            showBB: true
-                        }
-                    }
-                });
-
-                if (result && result.codeResult) {
-                    console.log("Código detectado:", result.codeResult.code);
-                    setScannedBarcode(result.codeResult.code);
+                const code = await tryDecodeImage(dataUrl);
+                if (code) {
+                    setScannedBarcode(code);
                 } else {
-                    console.log("No se detectó código de barras");
                     setScannedBarcode('');
-                    alert("No se detectó ningún código de barras. Por favor, intente de nuevo con una imagen más clara.");
+                    alert("No se detectó ningún código de barras. Sugerencias: use una imagen clara, con buen contraste y el código bien enfocado; pruebe recortar la imagen solo al código.");
                 }
             } catch (error) {
                 console.error('Error al procesar la imagen:', error);
                 setScannedBarcode('');
-                alert("Error al procesar la imagen. Por favor, asegúrese de que la imagen sea clara y contenga un código de barras válido.");
+                alert("Error al procesar la imagen. Asegúrese de que el archivo sea una imagen válida (JPG/PNG) con un código de barras visible.");
             }
         };
 
@@ -264,22 +329,28 @@ const NewInventory = () => {
                 throw new Error('No hay sesión activa. Por favor, inicie sesión nuevamente.');
             }
 
-            if (!scannedBarcode || !formData.inventario || !formData.dispositivo || !formData.modelo) {
-                throw new Error('Por favor, complete todos los campos requeridos.');
+            const trim = (v) => (v != null && typeof v === 'string' ? v.trim() : '');
+            const inventario = trim(formData.inventario);
+            const modelo = trim(formData.modelo);
+            const descripcion = trim(formData.descripcion);
+            const dispositivo = trim(formData.dispositivo);
+
+            if (!scannedBarcode || !inventario || !dispositivo || !modelo) {
+                throw new Error('Por favor, complete todos los campos requeridos (inventario, dispositivo, modelo).');
             }
 
-            const cantidad = parseInt(formData.cantidad);
+            const cantidad = parseInt(formData.cantidad, 10);
             if (isNaN(cantidad) || cantidad <= 0) {
                 throw new Error('La cantidad debe ser un número mayor que 0.');
             }
 
             const requestData = {
-                barcode: scannedBarcode,
-                inventario: formData.inventario,
-                dispositivo: formData.dispositivo,  // Enviamos el ID del tipo tal cual viene del selector
-                modelo: formData.modelo,
-                descripcion: formData.descripcion || '',
-                cantidad: cantidad,
+                barcode: scannedBarcode.trim(),
+                inventario,
+                dispositivo,
+                modelo,
+                descripcion: descripcion || '',
+                cantidad,
                 purchase_date: new Date().toISOString().split('T')[0],
                 location: 'default'
             };
@@ -291,7 +362,7 @@ const NewInventory = () => {
                 'Accept': 'application/json'
             });
 
-            const response = await fetch('http://localhost:5000/api/stock', {
+            const response = await fetch('/api/stock', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -412,13 +483,17 @@ const NewInventory = () => {
                 />
                 
                 <div className="form-grid">
-                    <input 
-                        type="text" 
-                        id="inventario" 
-                        placeholder="Inventario" 
-                        value={formData.inventario} 
-                        onChange={handleInputChange} 
-                    />
+                    <div className="form-group">
+                        <label htmlFor="inventario">Inventario</label>
+                        <input 
+                            type="text" 
+                            id="inventario" 
+                            placeholder="Inventario" 
+                            value={formData.inventario} 
+                            onChange={handleInputChange}
+                            className="form-control"
+                        />
+                    </div>
                     <div className="form-group">
                         <label htmlFor="dispositivo">Dispositivo</label>
                         <DeviceTypeSelector
@@ -426,27 +501,40 @@ const NewInventory = () => {
                             onChange={handleDeviceTypeChange}
                         />
                     </div>
-                    <input 
-                        type="text" 
-                        id="modelo" 
-                        placeholder="Modelo" 
-                        value={formData.modelo} 
-                        onChange={handleInputChange} 
-                    />
-                    <input 
-                        type="text" 
-                        id="descripcion" 
-                        placeholder="Descripción" 
-                        value={formData.descripcion} 
-                        onChange={handleInputChange} 
-                    />
-                    <input 
-                        type="number" 
-                        id="cantidad" 
-                        placeholder="Cantidad" 
-                        value={formData.cantidad} 
-                        onChange={handleInputChange} 
-                    />
+                    <div className="form-group">
+                        <label htmlFor="modelo">Modelo</label>
+                        <input 
+                            type="text" 
+                            id="modelo" 
+                            placeholder="Modelo" 
+                            value={formData.modelo} 
+                            onChange={handleInputChange}
+                            className="form-control"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="descripcion">Descripción</label>
+                        <input 
+                            type="text" 
+                            id="descripcion" 
+                            placeholder="Descripción" 
+                            value={formData.descripcion} 
+                            onChange={handleInputChange}
+                            className="form-control"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="cantidad">Cantidad</label>
+                        <input 
+                            type="number" 
+                            id="cantidad" 
+                            placeholder="Cantidad" 
+                            value={formData.cantidad} 
+                            onChange={handleInputChange}
+                            className="form-control"
+                            min="1"
+                        />
+                    </div>
                 </div>
 
                 <button 

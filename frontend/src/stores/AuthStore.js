@@ -1,6 +1,8 @@
 // AuthStore.js
 import { EventEmitter } from 'events';
 
+const AUTH_DEBUG = false; // set true to see auth/session logs
+
 class AuthStore extends EventEmitter {
     constructor() {
         super();
@@ -30,7 +32,7 @@ class AuthStore extends EventEmitter {
     }
 
     handleStorageChange(event) {
-        console.log('Storage change detected:', event);
+        if (AUTH_DEBUG) console.log('Storage change detected:', event);
         if (event.key === 'jwt_token' || event.key === 'username' || event.key === 'user_type') {
             this.initializeFromStorage();
         }
@@ -43,15 +45,11 @@ class AuthStore extends EventEmitter {
             const username = localStorage.getItem('username');
             const userType = localStorage.getItem('user_type');
 
-            console.log('Loading auth state from storage:', {
-                hasToken: !!token,
-                hasUsername: !!username,
-                userType
-            });
+            if (AUTH_DEBUG) console.log('Loading auth state from storage:', { hasToken: !!token, hasUsername: !!username, userType });
 
             // Clear state if any required data is missing
             if (!token || !username || !userType) {
-                console.log('Missing required auth data in storage');
+                if (AUTH_DEBUG) console.log('Missing required auth data in storage');
                 await this.clearState(false);
                 return;
             }
@@ -66,19 +64,12 @@ class AuthStore extends EventEmitter {
             // Verificar token con el backend
             const isValid = await this.verifyToken();
             if (!isValid) {
-                console.log('Token verification failed during initialization');
+                if (AUTH_DEBUG) console.log('Token verification failed during initialization');
                 await this.clearState(true);
                 return;
             }
 
-            console.log('Auth state loaded successfully:', {
-                isLoggedIn: this._isLoggedIn,
-                userName: this._userName,
-                userType: this._userType,
-                hasToken: !!this._token,
-                isInitialized: this._isInitialized,
-                tokenPreview: this._token ? this._token.substring(0, 10) + '...' : null
-            });
+            if (AUTH_DEBUG) console.log('Auth state loaded successfully:', { isLoggedIn: this._isLoggedIn, userName: this._userName, userType: this._userType });
 
             this.emit('change');
         } catch (error) {
@@ -92,7 +83,7 @@ class AuthStore extends EventEmitter {
 
         try {
             // Primero, verificar el estado de la sesión
-            const debugResponse = await fetch('http://localhost:5000/api/auth/debug', {
+            const debugResponse = await fetch('/api/auth/debug', {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${this._token}`,
@@ -104,16 +95,16 @@ class AuthStore extends EventEmitter {
             });
 
             const debugData = await debugResponse.json();
-            console.log('Session debug info:', debugData);
+            if (AUTH_DEBUG) console.log('Session debug info:', debugData);
 
             if (!debugData.valid_token) {
-                console.log('Token not valid according to debug endpoint');
+                if (AUTH_DEBUG) console.log('Token not valid according to debug endpoint');
                 await this.clearState(true);
                 return false;
             }
 
             // Si el token es válido, obtener datos del usuario
-            const response = await fetch('http://localhost:5000/api/auth/me', {
+            const response = await fetch('/api/auth/me', {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${this._token}`,
@@ -125,19 +116,13 @@ class AuthStore extends EventEmitter {
             });
 
             if (!response.ok) {
-                console.log('Token verification failed:', {
-                    status: response.status,
-                    headers: Object.fromEntries(response.headers.entries())
-                });
+                if (AUTH_DEBUG) console.log('Token verification failed:', { status: response.status });
                 await this.clearState(true);
                 return false;
             }
 
             const data = await response.json();
-            console.log('Token verification successful:', {
-                data,
-                headers: Object.fromEntries(response.headers.entries())
-            });
+            if (AUTH_DEBUG) console.log('Token verification successful:', data);
 
             // Actualizar datos del usuario si han cambiado
             if (data.username !== this._userName || data.user_type !== this._userType) {
@@ -151,10 +136,7 @@ class AuthStore extends EventEmitter {
             // Verificar y actualizar el token si se recibió uno nuevo
             const newToken = response.headers.get('Authorization')?.replace('Bearer ', '');
             if (newToken && newToken !== this._token) {
-                console.log('Updating token:', {
-                    oldToken: this._token.substring(0, 10) + '...',
-                    newToken: newToken.substring(0, 10) + '...'
-                });
+                if (AUTH_DEBUG) console.log('Updating token');
                 this._token = newToken;
                 localStorage.setItem('jwt_token', newToken);
                 this.emit('change');
@@ -169,7 +151,7 @@ class AuthStore extends EventEmitter {
     }
 
     async clearState(emitChange = true) {
-        console.log('Clearing auth state');
+        if (AUTH_DEBUG) console.log('Clearing auth state');
         
         // Clear instance state
         this._token = null;
@@ -187,28 +169,20 @@ class AuthStore extends EventEmitter {
         }
         
         if (emitChange) {
-            console.log('Emitting auth state change after clear');
+            if (AUTH_DEBUG) console.log('Emitting auth state change after clear');
             this.emit('change');
         }
     }
 
     isLoggedIn() {
         const isValid = this._isLoggedIn && !!this._token;
-        console.log('Checking login state:', {
-            _isLoggedIn: this._isLoggedIn,
-            hasToken: !!this._token,
-            isValid
-        });
+        if (AUTH_DEBUG) console.log('Checking login state:', { _isLoggedIn: this._isLoggedIn, hasToken: !!this._token, isValid });
         return isValid;
     }
 
     isAdmin() {
         const isAdmin = this.isLoggedIn() && this._userType === 'admin';
-        console.log('Checking admin status:', {
-            isLoggedIn: this._isLoggedIn,
-            userType: this._userType,
-            isAdmin
-        });
+        if (AUTH_DEBUG) console.log('Checking admin status:', { isLoggedIn: this._isLoggedIn, userType: this._userType, isAdmin });
         return isAdmin;
     }
 
@@ -299,17 +273,7 @@ class AuthStore extends EventEmitter {
         const hasUserData = !!this._userName && !!this._userType;
         const isValid = hasToken && hasUserData && this._isLoggedIn && this._isInitialized;
 
-        console.log('Validating auth state:', {
-            hasToken,
-            hasUserData,
-            isLoggedIn: this._isLoggedIn,
-            isInitialized: this._isInitialized,
-            isValid,
-            token: this._token ? this._token.substring(0, 10) + '...' : null,
-            userName: this._userName,
-            userType: this._userType
-        });
-
+        if (AUTH_DEBUG) console.log('Validating auth state:', { hasToken, hasUserData, isLoggedIn: this._isLoggedIn, isInitialized: this._isInitialized, isValid });
         return isValid;
     }
 }

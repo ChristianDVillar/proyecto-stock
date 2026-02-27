@@ -3,40 +3,32 @@ Integration tests for the API
 """
 import pytest
 import json
-from src.app import app
-from src.api.models import db, User, Stock, StockTypeEnum, StockStatusEnum, UserTypeEnum
+from src.app import create_app
+from src.app.models import db, User, Stock, StockTypeEnum, StockStatusEnum, UserTypeEnum
 from werkzeug.security import generate_password_hash
 
 @pytest.fixture
 def client():
-    """Create a test client"""
-    app.config['TESTING'] = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
-    app.config['JWT_SECRET_KEY'] = 'test-secret-key'
-    app.config['SECRET_KEY'] = 'test-secret-key'
-    
-    with app.test_client() as client:
-        with app.app_context():
-            db.create_all()
-            # Create test users
-            admin = User(
-                username='admin',
-                password=generate_password_hash('admin123'),
-                user_type=UserTypeEnum.admin,
-                is_active=True
-            )
-            user = User(
-                username='user',
-                password=generate_password_hash('user123'),
-                user_type=UserTypeEnum.user,
-                is_active=True
-            )
-            db.session.add(admin)
-            db.session.add(user)
-            db.session.commit()
-        yield client
-        with app.app_context():
-            db.drop_all()
+    """Create a test client (tablas ya creadas en create_app para testing)."""
+    app = create_app('testing')
+    with app.app_context():
+        admin = User(
+            username='admin',
+            password=generate_password_hash('admin123'),
+            user_type=UserTypeEnum.admin,
+            is_active=True
+        )
+        user = User(
+            username='user',
+            password=generate_password_hash('user123'),
+            user_type=UserTypeEnum.user,
+            is_active=True
+        )
+        db.session.add(admin)
+        db.session.add(user)
+        db.session.commit()
+    with app.test_client() as c:
+        yield c
 
 @pytest.fixture
 def admin_token(client):

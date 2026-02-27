@@ -1,87 +1,58 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from sqlalchemy import or_, func
 from .models import db, Stock, StockMovement, MaintenanceRecord, StockStatusEnum, StockTypeEnum, CustomStockType, DeviceTypeEnum, CustomDeviceType
+from .repositories.stock_repository import StockRepository
 from .utils import (
     validate_barcode, validate_inventario, validate_modelo, validate_cantidad,
     validate_request_data, error_handler
 )
+from .services.stock_service import StockService
 from datetime import datetime
-import boto3
 import os
-from sqlalchemy.orm import Session
+import json
+from urllib import request as urlrequest, error as urlerror
 
 api = Blueprint('api', __name__)
-s3 = boto3.client('s3')
+
+
+def _format_types_response(enum_cls, custom_model, custom_id_prefix=None, exclude_enum_names=None, extra_items=None):
+    """
+    Construye respuesta de tipos: enum + custom de BD + ítems extra.
+    exclude_enum_names: set de nombres del enum a no incluir (ej. {'otro'}).
+    extra_items: lista de dicts [{'id': x, 'name': y}, ...] a añadir al final.
+    """
+    exclude = exclude_enum_names or set()
+    enum_types = [{'id': t.name, 'name': t.value} for t in enum_cls if t.name not in exclude]
+    custom_list = custom_model.query.all()
+    if custom_id_prefix:
+        custom_types_list = [{'id': f'{custom_id_prefix}_{t.id}', 'name': t.name} for t in custom_list]
+    else:
+        custom_types_list = [{'id': t.name, 'name': t.name} for t in custom_list]
+    result = enum_types + custom_types_list
+    if extra_items:
+        result = result + extra_items
+    return {'types': result}
+
 
 @api.route('/stock/inventory', methods=['GET'])
 @jwt_required()
 def get_inventory():
     try:
-        # Obtener el inventario agrupado por tipo
-        inventory = db.session.query(
-            Stock.dispositivo,
-            func.count(Stock.id).label('total_items'),
-            func.sum(Stock.cantidad).label('total_quantity')
-        ).group_by(Stock.dispositivo).all()
-        
-        # Obtener los tipos personalizados
-        custom_types = CustomStockType.query.all()
-        custom_types_dict = {t.id: t.name for t in custom_types}
-        
-        # Formatear la respuesta
-        inventory_data = []
-        for tipo, items, cantidad in inventory:
-            inventory_data.append({
-                'tipo': tipo.value if tipo else 'Desconocido',
-                'total_items': items,
-                'total_cantidad': cantidad
-            })
-        
-        # Obtener el stock detallado
-        stock_items = Stock.query.all()
-        stock_details = []
-        for item in stock_items:
-            stock_details.append({
-                'id': item.id,
-                'barcode': item.barcode,
-                'inventario': item.inventario,
-                'dispositivo': item.dispositivo.value,
-                'modelo': item.modelo,
-                'cantidad': item.cantidad,
-                'status': item.status.value,
-                'location': item.location
-            })
-
-        return jsonify({
-            'resumen': inventory_data,
-            'detalle': stock_details
-        }), 200
-
+        result = StockService.get_inventory()
+        return jsonify(result), 200
     except Exception as e:
-        print(f"Error al obtener inventario: {str(e)}")
-        return jsonify({
-            'error': 'Error al obtener el inventario',
-            'message': str(e)
-        }), 500
+        return jsonify({'error': 'Error al obtener el inventario', 'message': str(e)}), 500
 
 @api.route('/stock/types', methods=['GET'])
 @jwt_required()
 def get_stock_types():
     try:
-        # Obtener tipos de stock del enum
-        enum_types = [{'id': t.name, 'name': t.value} for t in StockTypeEnum if t.name != 'otro']
-        
-        # Obtener tipos personalizados de la base de datos
-        custom_types = CustomStockType.query.all()
-        custom_types_list = [{'id': f'custom_{t.id}', 'name': t.name} for t in custom_types]
-        
-        # Combinar ambas listas y agregar la opción "otro"
-        all_types = enum_types + custom_types_list + [{'id': 'otro', 'name': 'Otro...'}]
-        
-        return jsonify({
-            'types': all_types
-        }), 200
+        return jsonify(_format_types_response(
+            StockTypeEnum, CustomStockType,
+            custom_id_prefix='custom',
+            exclude_enum_names={'otro'},
+            extra_items=[{'id': 'otro', 'name': 'Otro...'}]
+        )), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -89,227 +60,44 @@ def get_stock_types():
 @jwt_required()
 def get_device_types():
     try:
-        # Obtener tipos de dispositivos del enum
-        enum_types = [{'id': t.name, 'name': t.value} for t in DeviceTypeEnum]
-        
-        # Obtener tipos personalizados de la base de datos
-        custom_types = CustomDeviceType.query.all()
-        custom_types_list = [{'id': t.name, 'name': t.name} for t in custom_types]
-        
-        # Combinar ambas listas
-        all_types = enum_types + custom_types_list
-        
-        return jsonify({
-            'types': all_types
-        }), 200
+        return jsonify(_format_types_response(DeviceTypeEnum, CustomDeviceType)), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @api.route('/stock', methods=['POST'])
 @jwt_required()
 def create_stock():
-    current_user_id = get_jwt_identity()
-    
-    if current_user_id is None:
-        return jsonify({
-            'error': 'Usuario no autenticado',
-            'message': 'La sesión ha expirado o no es válida. Por favor, inicie sesión nuevamente.'
-        }), 401
-
-    data = request.get_json()
-    
-    # Validar campos requeridos
-    required_fields = ['barcode', 'inventario', 'dispositivo', 'modelo']
-    is_valid, error_msg = validate_request_data(required_fields, data)
-    if not is_valid:
-        return jsonify({
-            'error': 'Datos inválidos',
-            'message': error_msg
-        }), 400
-
-    # Validar formato de campos
-    barcode_valid, barcode_error = validate_barcode(data['barcode'])
-    if not barcode_valid:
-        return jsonify({
-            'error': 'Código de barras inválido',
-            'message': barcode_error
-        }), 400
-
-    inventario_valid, inventario_error = validate_inventario(data['inventario'])
-    if not inventario_valid:
-        return jsonify({
-            'error': 'Código de inventario inválido',
-            'message': inventario_error
-        }), 400
-
-    modelo_valid, modelo_error = validate_modelo(data['modelo'])
-    if not modelo_valid:
-        return jsonify({
-            'error': 'Modelo inválido',
-            'message': modelo_error
-        }), 400
-
-    # Validar código de barras único
-    existing_stock = Stock.query.filter_by(barcode=data['barcode']).first()
-    if existing_stock:
-        return jsonify({
-            'error': 'Código de barras duplicado',
-            'message': 'El código de barras ya existe en la base de datos.'
-        }), 400
-
-    # Procesar el tipo de dispositivo
-    device_type = data.get('dispositivo', '').lower()
-    custom_type = None
-    device_type_enum = None
-
     try:
-        # Intentar obtener el tipo del enum
-        device_type_enum = StockTypeEnum[device_type]
-    except KeyError:
-        if device_type.startswith('custom_'):
-            # Es un tipo personalizado existente
-            try:
-                custom_type_id = int(device_type.split('_')[1])
-                custom_type = CustomStockType.query.get(custom_type_id)
-                if not custom_type:
-                    return jsonify({
-                        'error': 'Tipo personalizado no encontrado',
-                        'message': 'El tipo personalizado seleccionado no existe.'
-                    }), 400
-                device_type_enum = StockTypeEnum.otro
-            except (IndexError, ValueError):
-                return jsonify({
-                    'error': 'Formato de tipo personalizado inválido',
-                    'message': 'El formato del tipo personalizado es inválido.'
-                }), 400
-        else:
-            return jsonify({
-                'error': 'Tipo de dispositivo inválido',
-                'message': f'El tipo de dispositivo "{device_type}" no es válido.',
-                'valid_types': [t.name for t in StockTypeEnum]
-            }), 400
-
-    # Validar cantidad
-    cantidad_valid, cantidad_error = validate_cantidad(data.get('cantidad', 1))
-    if not cantidad_valid:
-        return jsonify({
-            'error': 'Cantidad inválida',
-            'message': cantidad_error
-        }), 400
-    
-    cantidad = int(data.get('cantidad', 1))
-
-    # Crear el nuevo stock
-    new_stock = Stock(
-        barcode=data['barcode'],
-        inventario=data['inventario'],
-        dispositivo=device_type_enum,
-        modelo=data['modelo'],
-        descripcion=data.get('descripcion', ''),
-        cantidad=cantidad,
-        stocktype=device_type_enum,
-        status=StockStatusEnum.disponible,
-        location=data.get('location', 'default'),
-        serial_number=data.get('serial_number'),
-        purchase_date=datetime.strptime(data['purchase_date'], '%Y-%m-%d').date() if data.get('purchase_date') else None,
-        warranty_expiry=datetime.strptime(data['warranty_expiry'], '%Y-%m-%d').date() if data.get('warranty_expiry') else None,
-        created_by=current_user_id
-    )
-
-    # Crear el movimiento inicial
-    movement = StockMovement(
-        user_id=current_user_id,
-        quantity=cantidad,
-        movement_type='entrada',
-        to_location=data.get('location', 'default'),
-        notes='Registro inicial de inventario'
-    )
-
-    try:
-        # Agregar el nuevo stock a la sesión
-        db.session.add(new_stock)
-        db.session.flush()
-
-        # Asociar el movimiento con el stock
-        movement.stock_id = new_stock.id
-        db.session.add(movement)
-        
-        # Confirmar la transacción
-        db.session.commit()
-        
-        response_data = {
-            'message': 'Stock creado exitosamente',
-            'id': new_stock.id,
-            'barcode': new_stock.barcode
-        }
-
-        if custom_type:
-            response_data['custom_type'] = {
-                'id': custom_type.id,
-                'name': custom_type.name
-            }
-
+        current_user_id = get_jwt_identity()
+        if current_user_id is None:
+            return jsonify({'error': 'Usuario no autenticado', 'message': 'Sesión expirada o no válida.'}), 401
+        data = request.get_json()
+        try:
+            user_id = int(current_user_id)
+        except (TypeError, ValueError):
+            return jsonify({'error': 'Usuario no autenticado'}), 401
+        new_stock, err = StockService.create_stock_item(user_id, data or {})
+        if err:
+            return jsonify({'error': err['error'], 'message': err.get('message', '')}), err.get('status', 500)
+        response_data = {'message': 'Stock creado exitosamente', 'id': new_stock.id, 'barcode': new_stock.barcode}
         return jsonify(response_data), 201
-
     except Exception as e:
-        db.session.rollback()
-        print(f"Error en la transacción: {str(e)}")
-        import traceback
-        print(f"Traceback: {traceback.format_exc()}")
-        return jsonify({
-            'error': 'Error al crear el stock',
-            'message': str(e)
-        }), 500
+        current_app.logger.exception('create_stock failed')
+        msg = str(e) or type(e).__name__
+        return jsonify({'error': 'Error al crear el stock', 'message': msg}), 500
 
 @api.route('/stock/<barcode>', methods=['GET'])
 @jwt_required()
 def get_stock(barcode):
     try:
-        stock = Stock.query.filter_by(barcode=barcode).first()
+        stock = StockRepository.get_by_barcode(barcode, include_deleted=False)
         if not stock:
             return jsonify({'error': 'Stock no encontrado'}), 404
 
-        # Incluir últimos movimientos
         movements = StockMovement.query.filter_by(stock_id=stock.id).order_by(StockMovement.timestamp.desc()).limit(5).all()
-        
-        # Incluir último mantenimiento
         last_maintenance = MaintenanceRecord.query.filter_by(stock_id=stock.id).order_by(MaintenanceRecord.date_performed.desc()).first()
 
-        return jsonify({
-            'stock': {
-                'id': stock.id,
-                'barcode': stock.barcode,
-                'inventario': stock.inventario,
-                'dispositivo': stock.dispositivo,
-                'modelo': stock.modelo,
-                'descripcion': stock.descripcion,
-                'cantidad': stock.cantidad,
-                'stocktype': stock.stocktype.value,
-                'status': stock.status.value,
-                'location': stock.location,
-                'serial_number': stock.serial_number,
-                'purchase_date': stock.purchase_date.isoformat() if stock.purchase_date else None,
-                'warranty_expiry': stock.warranty_expiry.isoformat() if stock.warranty_expiry else None,
-                'last_maintenance': stock.last_maintenance.isoformat() if stock.last_maintenance else None,
-                'next_maintenance': stock.next_maintenance.isoformat() if stock.next_maintenance else None,
-                'image_url': stock.image_url
-            },
-            'movements': [{
-                'type': m.movement_type,
-                'quantity': m.quantity,
-                'timestamp': m.timestamp.isoformat(),
-                'from_location': m.from_location,
-                'to_location': m.to_location,
-                'notes': m.notes
-            } for m in movements],
-            'last_maintenance': {
-                'type': last_maintenance.maintenance_type,
-                'date': last_maintenance.date_performed.isoformat(),
-                'description': last_maintenance.description,
-                'status': last_maintenance.status
-            } if last_maintenance else None
-        }), 200
-
+        return jsonify(StockService.format_stock_detail(stock, movements, last_maintenance)), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -321,84 +109,94 @@ def search_stock():
         stocktype = request.args.get('type')
         status = request.args.get('status')
         location = request.args.get('location')
-        
-        # Paginación
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
-        per_page = min(per_page, 100)  # Limitar máximo a 100
-
-        stock_query = Stock.query
-
-        if query:
-            stock_query = stock_query.filter(
-                or_(
-                    Stock.barcode.ilike(f'%{query}%'),
-                    Stock.inventario.ilike(f'%{query}%'),
-                    Stock.modelo.ilike(f'%{query}%'),
-                    Stock.descripcion.ilike(f'%{query}%')
-                )
-            )
-
-        if stocktype:
-            try:
-                # Intentar convertir a enum
-                if stocktype.startswith('custom_'):
-                    custom_id = int(stocktype.split('_')[1])
-                    custom_type = CustomStockType.query.get(custom_id)
-                    if custom_type:
-                        stock_query = stock_query.filter(Stock.stocktype == StockTypeEnum.otro)
-                else:
-                    stock_type_enum = StockTypeEnum[stocktype]
-                    stock_query = stock_query.filter(Stock.stocktype == stock_type_enum)
-            except (KeyError, ValueError, IndexError):
-                pass  # Ignorar tipos inválidos
-        
-        if status:
-            try:
-                status_enum = StockStatusEnum[status]
-                stock_query = stock_query.filter(Stock.status == status_enum)
-            except KeyError:
-                pass  # Ignorar estados inválidos
-        
-        if location:
-            stock_query = stock_query.filter(Stock.location.ilike(f'%{location}%'))
-
-        # Contar total antes de paginar
-        total_items = stock_query.count()
-        total_pages = (total_items + per_page - 1) // per_page
-
-        # Aplicar paginación
-        stocks = stock_query.order_by(Stock.updated_at.desc()).paginate(
-            page=page,
-            per_page=per_page,
-            error_out=False
-        ).items
-
-        return jsonify({
-            'stocks': [{
-                'id': s.id,
-                'barcode': s.barcode,
-                'inventario': s.inventario,
-                'dispositivo': s.dispositivo,
-                'modelo': s.modelo,
-                'cantidad': s.cantidad,
-                'status': s.status.value,
-                'location': s.location
-            } for s in stocks],
-            'total_items': total_items,
-            'total_pages': total_pages,
-            'current_page': page,
-            'per_page': per_page
-        }), 200
-
+        result = StockService.search_stock(query=query, stocktype=stocktype, status=status, location=location, page=page, per_page=per_page)
+        return jsonify(result), 200
     except Exception as e:
-        print(f"Error in search_stock: {str(e)}")
-        import traceback
-        print(traceback.format_exc())
-        return jsonify({
-            'error': 'Error al buscar stock',
-            'message': str(e)
-        }), 500
+        current_app.logger.exception('stock/search failed')
+        return jsonify({'error': 'Error al buscar stock', 'message': str(e)}), 500
+
+
+@api.route('/stock/search_es', methods=['GET'])
+@jwt_required()
+def search_stock_elasticsearch():
+    """
+    Búsqueda avanzada de stock usando Elasticsearch.
+    Requiere que ELASTICSEARCH_URL (y opcionalmente ELASTICSEARCH_INDEX) estén configurados.
+    """
+    q = (request.args.get('q') or '').strip()
+    if not q:
+        return jsonify({'error': 'Parámetro q requerido'}), 400
+
+    es_url = current_app.config.get('ELASTICSEARCH_URL') or os.environ.get('ELASTICSEARCH_URL', 'http://elasticsearch:9200')
+    index = current_app.config.get('ELASTICSEARCH_INDEX', 'stock')
+    search_url = f"{es_url.rstrip('/')}/{index}/_search"
+
+    body = {
+        "query": {
+            "multi_match": {
+                "query": q,
+                "fields": ["barcode^3", "inventario^3", "modelo", "descripcion"]
+            }
+        },
+        "size": int(request.args.get('size', 25) or 25)
+    }
+
+    try:
+        data = json.dumps(body).encode("utf-8")
+        req = urlrequest.Request(
+            search_url,
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="GET" if current_app.config.get("ELASTICSEARCH_ALLOW_GET_BODY", True) else "POST",
+        )
+        with urlrequest.urlopen(req, timeout=3) as resp:
+            payload = json.loads(resp.read().decode("utf-8") or "{}")
+    except urlerror.HTTPError as e:
+        msg = e.read().decode("utf-8") if hasattr(e, "read") else str(e)
+        current_app.logger.exception("elasticsearch search HTTPError")
+        return jsonify({"error": "Error al buscar en Elasticsearch", "message": msg}), 502
+    except Exception as e:
+        current_app.logger.exception("elasticsearch search failed")
+        return jsonify({"error": "No se pudo conectar a Elasticsearch", "message": str(e)}), 502
+
+    hits = (payload.get("hits") or {}).get("hits") or []
+    total_info = (payload.get("hits") or {}).get("total") or {}
+    total = total_info.get("value", len(hits)) if isinstance(total_info, dict) else total_info
+
+    results = []
+    for h in hits:
+        src = h.get("_source") or {}
+        results.append({
+            "id": src.get("id") or h.get("_id"),
+            "score": h.get("_score"),
+            "barcode": src.get("barcode"),
+            "inventario": src.get("inventario"),
+            "modelo": src.get("modelo"),
+            "descripcion": src.get("descripcion"),
+            "location": src.get("location"),
+            "raw": src,
+        })
+
+    return jsonify({"query": q, "total": total, "results": results}), 200
+
+@api.route('/stock/<int:stock_id>', methods=['DELETE'])
+@jwt_required()
+def delete_stock(stock_id):
+    """Soft delete: marca deleted_at y registra en stock_history."""
+    try:
+        current_user_id = get_jwt_identity()
+        if current_user_id is None:
+            return jsonify({'error': 'Usuario no autenticado'}), 401
+        user_id = int(current_user_id)
+        stock, err = StockService.soft_delete_stock(stock_id, user_id)
+        if err:
+            return jsonify({'error': err['error'], 'message': err.get('message', '')}), err.get('status', 500)
+        return jsonify({'message': 'Stock eliminado (soft delete)'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 @api.route('/stock/<int:stock_id>/movement', methods=['POST'])
 @jwt_required()
@@ -407,7 +205,7 @@ def register_movement(stock_id):
         current_user_id = get_jwt_identity()
         data = request.json
 
-        stock = Stock.query.get(stock_id)
+        stock = StockRepository.get_by_id(stock_id, include_deleted=False)
         if not stock:
             return jsonify({'error': 'Stock no encontrado'}), 404
 
@@ -445,7 +243,7 @@ def register_maintenance(stock_id):
         current_user_id = get_jwt_identity()
         data = request.json
 
-        stock = Stock.query.get(stock_id)
+        stock = StockRepository.get_by_id(stock_id, include_deleted=False)
         if not stock:
             return jsonify({'error': 'Stock no encontrado'}), 404
 

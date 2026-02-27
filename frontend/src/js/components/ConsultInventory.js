@@ -1,108 +1,72 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { FaSearch, FaFilter, FaEye } from 'react-icons/fa';
 import authStore from '../../stores/AuthStore';
 import '../../styles/ConsultInventory.css';
 
-const ConsultInventory = () => {
-    const [stocks, setStocks] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [filters, setFilters] = useState({
-        type: '',
-        status: '',
-        location: ''
+const itemsPerPage = 20;
+
+async function fetchStockTypes() {
+    const token = authStore.getToken();
+    const res = await fetch('/api/stock/types', {
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        credentials: 'include'
     });
+    if (!res.ok) throw new Error('Error al cargar tipos');
+    const data = await res.json();
+    return data.types || [];
+}
+
+async function fetchStockSearch({ page, q, type, status, location }) {
+    const token = authStore.getToken();
+    if (!token) throw new Error('No hay sesión activa');
+    const params = new URLSearchParams({ page, per_page: itemsPerPage });
+    if (q) params.append('q', q);
+    if (type) params.append('type', type);
+    if (status) params.append('status', status);
+    if (location) params.append('location', location);
+    const res = await fetch(`/api/stock/search?${params}`, {
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        credentials: 'include'
+    });
+    if (res.status === 401) authStore.logout();
+    if (!res.ok) throw new Error('Error al buscar inventario');
+    return res.json();
+}
+
+const ConsultInventory = () => {
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filters, setFilters] = useState({ type: '', status: '', location: '' });
     const [showFilters, setShowFilters] = useState(false);
-    const [stockTypes, setStockTypes] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const [totalItems, setTotalItems] = useState(0);
     const [selectedStock, setSelectedStock] = useState(null);
     const [showDetails, setShowDetails] = useState(false);
-    const itemsPerPage = 20;
 
-    useEffect(() => {
-        loadStockTypes();
-        searchStocks();
-    }, [currentPage, searchQuery, filters]);
+    const { data: stockTypes = [] } = useQuery({
+        queryKey: ['stockTypes'],
+        queryFn: fetchStockTypes,
+        staleTime: 5 * 60 * 1000
+    });
 
-    const loadStockTypes = async () => {
-        try {
-            const token = authStore.getToken();
-            const response = await fetch('http://localhost:5000/api/stock/types', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            if (response.ok) {
-                const data = await response.json();
-                setStockTypes(data.types || []);
-            }
-        } catch (err) {
-            console.error('Error loading stock types:', err);
-        }
-    };
+    const { data: searchData, isLoading: loading, error: searchError } = useQuery({
+        queryKey: ['stockSearch', currentPage, searchQuery, filters.type, filters.status, filters.location],
+        queryFn: () => fetchStockSearch({
+            page: currentPage,
+            q: searchQuery,
+            type: filters.type,
+            status: filters.status,
+            location: filters.location
+        })
+    });
 
-    const searchStocks = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const token = authStore.getToken();
-            if (!token) {
-                throw new Error('No hay sesión activa');
-            }
-
-            const params = new URLSearchParams({
-                page: currentPage,
-                per_page: itemsPerPage
-            });
-
-            if (searchQuery) {
-                params.append('q', searchQuery);
-            }
-            if (filters.type) {
-                params.append('type', filters.type);
-            }
-            if (filters.status) {
-                params.append('status', filters.status);
-            }
-            if (filters.location) {
-                params.append('location', filters.location);
-            }
-
-            const response = await fetch(`http://localhost:5000/api/stock/search?${params}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (!response.ok) {
-                if (response.status === 401) {
-                    authStore.logout();
-                    return;
-                }
-                throw new Error('Error al buscar inventario');
-            }
-
-            const data = await response.json();
-            setStocks(data.stocks || []);
-            setTotalPages(data.total_pages || 1);
-            setTotalItems(data.total_items || 0);
-        } catch (err) {
-            setError(err.message);
-            console.error('Error searching stocks:', err);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const stocks = searchData?.stocks ?? [];
+    const totalPages = searchData?.total_pages ?? 1;
+    const totalItems = searchData?.total_items ?? 0;
+    const error = searchError?.message ?? null;
 
     const handleSearch = (e) => {
         e.preventDefault();
         setCurrentPage(1);
-        searchStocks();
     };
 
     const handleFilterChange = (field, value) => {
@@ -129,7 +93,7 @@ const ConsultInventory = () => {
             const stock = stocks.find(s => s.id === stockId);
             if (!stock) return;
 
-            const response = await fetch(`http://localhost:5000/api/stock/${stock.barcode}`, {
+            const response = await fetch(`/api/stock/${stock.barcode}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'

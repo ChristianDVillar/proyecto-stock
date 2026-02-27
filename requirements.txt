@@ -6,12 +6,14 @@ Flask-Cors==4.0.0
 Flask-Limiter==3.5.0
 
 # Authentication & Admin
-flask-admin==0.6.1
+flask-admin==1.6.1
 flask-login==0.6.3
 
 # Database
 SQLAlchemy==2.0.45
 psycopg2-binary==2.9.9
+Flask-Migrate==4.0.5
+Alembic==1.13.1
 
 # API Documentation
 flask-swagger-ui==4.11.1

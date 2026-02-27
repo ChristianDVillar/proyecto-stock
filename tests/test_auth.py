@@ -1,32 +1,24 @@
 import pytest
 import json
-from src.app import app
-from src.api.models import db, User, UserTypeEnum
+from src.app import create_app
+from src.app.models import db, User, UserTypeEnum
 from werkzeug.security import generate_password_hash
 
 @pytest.fixture
 def client():
-    """Create a test client"""
-    app.config['TESTING'] = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
-    app.config['JWT_SECRET_KEY'] = 'test-secret-key'
-    app.config['SECRET_KEY'] = 'test-secret-key'
-    
-    with app.test_client() as client:
-        with app.app_context():
-            db.create_all()
-            # Create test admin user
-            admin_user = User(
-                username='testadmin',
-                password=generate_password_hash('testpass123'),
-                user_type=UserTypeEnum.admin,
-                is_active=True
-            )
-            db.session.add(admin_user)
-            db.session.commit()
-        yield client
-        with app.app_context():
-            db.drop_all()
+    """Create a test client (tablas ya creadas en create_app para testing)."""
+    app = create_app('testing')
+    with app.app_context():
+        admin_user = User(
+            username='testadmin',
+            password=generate_password_hash('testpass123'),
+            user_type=UserTypeEnum.admin,
+            is_active=True
+        )
+        db.session.add(admin_user)
+        db.session.commit()
+    with app.test_client() as c:
+        yield c
 
 def test_register_user(client):
     """Test user registration"""

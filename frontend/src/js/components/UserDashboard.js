@@ -48,7 +48,7 @@ const UserDashboard = () => {
             
             console.log('Fetching users with token');
             
-            const response = await fetch('http://localhost:5000/api/users', {
+            const response = await fetch('/api/users', {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/json',
@@ -103,8 +103,8 @@ const UserDashboard = () => {
         try {
             const token = authStore.getToken();
             const url = editingUser 
-                ? `http://localhost:5000/api/users/${editingUser.id}`
-                : 'http://localhost:5000/api/users';
+                ? `/api/users/${editingUser.id}`
+                : '/api/users';
             const method = editingUser ? 'PUT' : 'POST';
 
             const response = await fetch(url, {
@@ -156,7 +156,7 @@ const UserDashboard = () => {
 
         try {
             const token = authStore.getToken();
-            const response = await fetch(`http://localhost:5000/api/users/${userId}`, {
+            const response = await fetch(`/api/users/${userId}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`,

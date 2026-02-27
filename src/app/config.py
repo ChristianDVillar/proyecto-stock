@@ -25,7 +25,14 @@ class Config:
         SECRET_KEY = 'dev-secret-key-change-in-production'
     
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', SECRET_KEY)
-    JWT_ACCESS_TOKEN_EXPIRES_DAYS = int(os.environ.get('JWT_ACCESS_TOKEN_EXPIRES_DAYS', '1'))
+    # Access token corto (15 min) para reducir riesgo XSS; refresh en cookie HTTP-only
+    JWT_ACCESS_TOKEN_EXPIRES = __import__('datetime').timedelta(minutes=int(os.environ.get('JWT_ACCESS_TOKEN_MINUTES', '15')))
+    JWT_REFRESH_TOKEN_EXPIRES = __import__('datetime').timedelta(days=int(os.environ.get('JWT_REFRESH_TOKEN_DAYS', '7')))
+    
+    # Refresh token en cookie (solo se envía a /api/auth/refresh)
+    JWT_REFRESH_COOKIE_NAME = 'refresh_token_cookie'
+    JWT_REFRESH_COOKIE_PATH = '/api/auth/refresh'
+    JWT_REFRESH_TOKEN_LOCATION = ['cookies']
     
     # Database
     SQLALCHEMY_TRACK_MODIFICATIONS = False
@@ -84,9 +91,12 @@ class TestingConfig(Config):
     DEBUG = False
     
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    # SQLite no admite pool_size/max_overflow; sobrescribir opciones del motor
+    SQLALCHEMY_ENGINE_OPTIONS = {}
     JWT_SECRET_KEY = 'test-secret-key'
     SECRET_KEY = 'test-secret-key'
     JWT_COOKIE_SECURE = False
+    RATELIMIT_ENABLED = False
 
 
 class ProductionConfig(Config):

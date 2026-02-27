@@ -110,9 +110,9 @@ class Stock(db.Model):
     __tablename__ = 'stock'
 
     id = db.Column(db.Integer, primary_key=True)
-    barcode = db.Column(db.String(50), unique=True, nullable=False)
-    inventario = db.Column(db.String(50), nullable=False)
-    dispositivo = db.Column(db.Enum(StockTypeEnum), nullable=False)
+    barcode = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    inventario = db.Column(db.String(50), nullable=False, index=True)
+    dispositivo = db.Column(db.Enum(StockTypeEnum), nullable=False, index=True)
     modelo = db.Column(db.String(50), nullable=False)
     descripcion = db.Column(db.String(200))
     cantidad = db.Column(db.Integer, default=1)
@@ -125,18 +125,21 @@ class Stock(db.Model):
     last_maintenance = db.Column(db.DateTime)
     next_maintenance = db.Column(db.DateTime)
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     image_url = db.Column(db.String(200))
+    deleted_at = db.Column(db.DateTime, nullable=True)  # soft delete
 
-    # Relaciones
-    movements = db.relationship('StockMovement', back_populates='stock')
-    maintenance_records = db.relationship('MaintenanceRecord', back_populates='stock')
+    # Relaciones (CASCADE en hijos: al borrar stock se borran movimientos y mantenimientos)
+    movements = db.relationship('StockMovement', back_populates='stock', passive_deletes=True)
+    maintenance_records = db.relationship('MaintenanceRecord', back_populates='stock', passive_deletes=True)
 
     __table_args__ = (
         Index('idx_stock_barcode', 'barcode'),
         Index('idx_stock_status', 'status'),
         Index('idx_stock_type', 'stocktype'),
+        Index('idx_stock_created_at', 'created_at'),
+        Index('idx_stock_deleted_at', 'deleted_at'),
     )
 
     def __repr__(self):
@@ -146,7 +149,7 @@ class Stock(db.Model):
 class StockMovement(db.Model):
     __tablename__ = 'stock_movements'
     id = db.Column(db.Integer, primary_key=True)
-    stock_id = db.Column(db.Integer, db.ForeignKey('stock.id'), nullable=False)
+    stock_id = db.Column(db.Integer, db.ForeignKey('stock.id', ondelete='CASCADE'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
     movement_type = db.Column(db.String(20), nullable=False)  # entrada/salida
@@ -168,7 +171,7 @@ class StockMovement(db.Model):
 class MaintenanceRecord(db.Model):
     __tablename__ = 'maintenance_records'
     id = db.Column(db.Integer, primary_key=True)
-    stock_id = db.Column(db.Integer, db.ForeignKey('stock.id'), nullable=False)
+    stock_id = db.Column(db.Integer, db.ForeignKey('stock.id', ondelete='CASCADE'), nullable=False)
     technician_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     maintenance_type = db.Column(db.String(50), nullable=False)
     description = db.Column(db.Text)
@@ -185,6 +188,24 @@ class MaintenanceRecord(db.Model):
         Index('idx_maintenance_stock', 'stock_id'),
         Index('idx_maintenance_date', 'date_performed'),
     )
+
+
+# Modelo de historial de cambios (auditoría)
+class StockHistory(db.Model):
+    __tablename__ = 'stock_history'
+    id = db.Column(db.Integer, primary_key=True)
+    stock_id = db.Column(db.Integer, db.ForeignKey('stock.id', ondelete='CASCADE'), nullable=False)
+    changed_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    action = db.Column(db.String(20), nullable=False)  # create, update, delete, soft_delete
+    old_value = db.Column(db.Text)  # JSON snapshot anterior
+    new_value = db.Column(db.Text)  # JSON snapshot nuevo
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index('idx_stock_history_stock', 'stock_id'),
+        Index('idx_stock_history_date', 'timestamp'),
+    )
+
 
 # Modelo de Sesión de Usuario
 class UserSession(db.Model):
@@ -254,16 +275,44 @@ class UserUUID(db.Model):
     def __repr__(self):
         return f'<UserUUID {self.id}>'
 
+
+# Solicitud de elementos (usuario, elemento/stock, fecha, tiempo, firma; admin: aprobar/rechazar, fecha entrega)
+class ItemRequest(db.Model):
+    __tablename__ = 'item_requests'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    stock_id = db.Column(db.Integer, db.ForeignKey('stock.id', ondelete='SET NULL'), nullable=True)  # elemento solicitado
+    request_username = db.Column(db.String(80), nullable=True)
+    request_date = db.Column(db.Date, nullable=False)
+    duration_type = db.Column(db.String(20), nullable=False)  # semanas | horas | definitivo
+    duration_value = db.Column(db.Integer, nullable=True)
+    signed = db.Column(db.Boolean, default=False, nullable=False)
+    signed_at = db.Column(db.DateTime, nullable=True)
+    status = db.Column(db.String(20), default='pendiente', nullable=False)  # pendiente | aprobado | rechazado
+    delivery_date = db.Column(db.Date, nullable=True)  # fecha de entrega (admin)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    requester = db.relationship('User', backref=db.backref('item_requests', lazy='dynamic'))
+    stock = db.relationship('Stock', backref=db.backref('item_requests', lazy='dynamic'))
+    __table_args__ = (Index('idx_item_request_user', 'user_id'), Index('idx_item_request_date', 'request_date'))
+
+
 @event.listens_for(Stock, 'before_update')
 def stock_before_update(mapper, connection, target):
     target.updated_at = datetime.utcnow()
 
 @event.listens_for(StockMovement, 'after_insert')
 def update_stock_quantity(mapper, connection, target):
-    stock = Stock.query.get(target.stock_id)
+    """Actualiza cantidad del stock; no hacer commit aquí (lo hace la transacción externa)."""
+    from sqlalchemy.orm import Session
+    session = Session.object_session(target)
+    if session is None:
+        return
+    stock = session.get(Stock, target.stock_id)
+    if not stock:
+        return
     if target.movement_type == 'entrada':
         stock.cantidad += target.quantity
     elif target.movement_type == 'salida':
         stock.cantidad -= target.quantity
-    db.session.commit()
 

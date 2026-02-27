@@ -10,24 +10,19 @@ from werkzeug.security import generate_password_hash
 
 @pytest.fixture
 def client():
-    """Create a test client"""
+    """Create a test client (tablas ya creadas en create_app para testing)."""
     app = create_app('testing')
-    
-    with app.test_client() as client:
-        with app.app_context():
-            db.create_all()
-            # Create test user
-            test_user = User(
-                username='testuser',
-                password=generate_password_hash('testpass123'),
-                user_type=UserTypeEnum.user,
-                is_active=True
-            )
-            db.session.add(test_user)
-            db.session.commit()
-        yield client
-        with app.app_context():
-            db.drop_all()
+    with app.app_context():
+        test_user = User(
+            username='testuser',
+            password=generate_password_hash('testpass123'),
+            user_type=UserTypeEnum.user,
+            is_active=True
+        )
+        db.session.add(test_user)
+        db.session.commit()
+    with app.test_client() as c:
+        yield c
 
 
 def test_login_with_invalid_credentials(client):

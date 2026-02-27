@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const DeviceTypeSelector = ({ value, onChange }) => {
+const DeviceTypeSelector = ({ value, onChange, id = 'dispositivo' }) => {
     const [types, setTypes] = useState([]);
     const [showCustomInput, setShowCustomInput] = useState(false);
     const [customType, setCustomType] = useState('');
@@ -23,7 +23,7 @@ const DeviceTypeSelector = ({ value, onChange }) => {
                 return;
             }
 
-            const response = await fetch('http://localhost:5000/api/stock/types', {
+            const response = await fetch('/api/stock/types', {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/json'
@@ -93,7 +93,7 @@ const DeviceTypeSelector = ({ value, onChange }) => {
                 return;
             }
 
-            const response = await fetch('http://localhost:5000/api/stock/types', {
+            const response = await fetch('/api/stock/types', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -135,24 +135,24 @@ const DeviceTypeSelector = ({ value, onChange }) => {
     };
 
     if (loading) {
-        return <div>Cargando tipos...</div>;
+        return (
+            <div className="device-type-selector">
+                <select id={id} className="form-control" disabled aria-busy="true">
+                    <option>Cargando tipos...</option>
+                </select>
+            </div>
+        );
     }
 
     if (error) {
         return (
-            <div>
-                <div style={{color: 'red', marginBottom: '10px'}}>Error: {error}</div>
-                <button 
-                    className="btn btn-primary" 
-                    onClick={fetchStockTypes}
-                >
+            <div className="device-type-selector">
+                <select id={id} className="form-control" disabled aria-invalid="true">
+                    <option>Error al cargar</option>
+                </select>
+                <div style={{color: 'red', marginTop: '6px', fontSize: '0.9rem'}}>{error}</div>
+                <button type="button" className="btn btn-primary" style={{marginTop: '8px'}} onClick={fetchStockTypes}>
                     Reintentar
-                </button>
-                <button 
-                    className="btn btn-secondary ml-2" 
-                    onClick={handleLogout}
-                >
-                    Cerrar Sesión
                 </button>
             </div>
         );
@@ -164,7 +164,7 @@ const DeviceTypeSelector = ({ value, onChange }) => {
                 value={value} 
                 onChange={handleTypeChange}
                 className="form-control"
-                id="dispositivo"
+                id={id}
             >
                 <option value="">Seleccione un tipo</option>
                 {types.map(type => (

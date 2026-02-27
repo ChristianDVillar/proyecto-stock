@@ -1,32 +1,24 @@
 import pytest
 import json
-from src.app import app
-from src.api.models import db, User, Stock, StockTypeEnum, StockStatusEnum, UserTypeEnum
+from src.app import create_app
+from src.app.models import db, User, UserTypeEnum
 from werkzeug.security import generate_password_hash
 
 @pytest.fixture
 def client():
-    """Create a test client"""
-    app.config['TESTING'] = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
-    app.config['JWT_SECRET_KEY'] = 'test-secret-key'
-    app.config['SECRET_KEY'] = 'test-secret-key'
-    
-    with app.test_client() as client:
-        with app.app_context():
-            db.create_all()
-            # Create test user
-            test_user = User(
-                username='testuser',
-                password=generate_password_hash('testpass123'),
-                user_type=UserTypeEnum.user,
-                is_active=True
-            )
-            db.session.add(test_user)
-            db.session.commit()
-        yield client
-        with app.app_context():
-            db.drop_all()
+    """Create a test client (tablas ya creadas en create_app para testing)."""
+    app = create_app('testing')
+    with app.app_context():
+        test_user = User(
+            username='testuser',
+            password=generate_password_hash('testpass123'),
+            user_type=UserTypeEnum.user,
+            is_active=True
+        )
+        db.session.add(test_user)
+        db.session.commit()
+    with app.test_client() as c:
+        yield c
 
 @pytest.fixture
 def auth_token(client):
@@ -140,4 +132,38 @@ def test_search_stock_pagination(client, auth_token):
     assert 'total_pages' in data
     assert 'total_items' in data
     assert len(data['stocks']) <= 10
+
+
+def test_soft_delete_stock(client, auth_token):
+    """Test soft delete: DELETE marks deleted_at; GET by barcode returns 404."""
+    # Create stock
+    stock_data = {
+        'barcode': 'DEL001',
+        'inventario': 'INV_DEL',
+        'dispositivo': 'laptop',
+        'modelo': 'To Delete',
+        'cantidad': 1
+    }
+    create_resp = client.post('/api/stock',
+                              json=stock_data,
+                              headers={'Authorization': f'Bearer {auth_token}'},
+                              content_type='application/json')
+    assert create_resp.status_code == 201
+    created = json.loads(create_resp.data)
+    stock_id = created['id']
+
+    # Get by barcode should succeed
+    get_resp = client.get('/api/stock/DEL001',
+                          headers={'Authorization': f'Bearer {auth_token}'})
+    assert get_resp.status_code == 200
+
+    # Soft delete by id
+    del_resp = client.delete(f'/api/stock/{stock_id}',
+                             headers={'Authorization': f'Bearer {auth_token}'})
+    assert del_resp.status_code == 200
+
+    # Get by barcode must return 404 (excluded by deleted_at)
+    get_after = client.get('/api/stock/DEL001',
+                           headers={'Authorization': f'Bearer {auth_token}'})
+    assert get_after.status_code == 404
 

@@ -1,39 +1,49 @@
 """
-Utility functions for error handling and validation
+Utility functions for error handling, validation and authorization helpers.
 """
 from flask import jsonify
 from functools import wraps
 import re
+from flask_jwt_extended import get_jwt_identity
+from .models import User, UserTypeEnum
+
+
+def _validate_string(value, field_name_es, max_len=50):
+    """Valida un string no vacío con longitud máxima. Devuelve (ok: bool, error: str|None)."""
+    if not value or not isinstance(value, str):
+        return False, f"{field_name_es} debe ser una cadena de texto"
+    if len(value.strip()) == 0:
+        return False, f"{field_name_es} no puede estar vacío"
+    if len(value) > max_len:
+        return False, f"{field_name_es} no puede exceder {max_len} caracteres"
+    return True, None
+
 
 def validate_barcode(barcode):
     """Validate barcode format"""
-    if not barcode or not isinstance(barcode, str):
-        return False, "El código de barras debe ser una cadena de texto"
-    if len(barcode.strip()) == 0:
-        return False, "El código de barras no puede estar vacío"
-    if len(barcode) > 50:
-        return False, "El código de barras no puede exceder 50 caracteres"
-    return True, None
+    return _validate_string(barcode, "El código de barras", 50)
+
 
 def validate_inventario(inventario):
     """Validate inventario code"""
-    if not inventario or not isinstance(inventario, str):
-        return False, "El código de inventario debe ser una cadena de texto"
-    if len(inventario.strip()) == 0:
-        return False, "El código de inventario no puede estar vacío"
-    if len(inventario) > 50:
-        return False, "El código de inventario no puede exceder 50 caracteres"
-    return True, None
+    return _validate_string(inventario, "El código de inventario", 50)
+
 
 def validate_modelo(modelo):
     """Validate modelo"""
-    if not modelo or not isinstance(modelo, str):
-        return False, "El modelo debe ser una cadena de texto"
-    if len(modelo.strip()) == 0:
-        return False, "El modelo no puede estar vacío"
-    if len(modelo) > 50:
-        return False, "El modelo no puede exceder 50 caracteres"
+    return _validate_string(modelo, "El modelo", 50)
+
+
+def validate_descripcion(descripcion):
+    """Validate descripcion (optional, max 200 chars)."""
+    if descripcion is None or descripcion == '':
+        return True, None
+    if not isinstance(descripcion, str):
+        return False, "La descripción debe ser texto"
+    if len(descripcion) > 200:
+        return False, "La descripción no puede exceder 200 caracteres"
     return True, None
+
 
 def validate_cantidad(cantidad):
     """Validate cantidad"""
@@ -104,4 +114,37 @@ def error_handler(f):
             print(traceback.format_exc())
             return handle_api_error("Error interno del servidor", 500)
     return decorated_function
+
+
+def role_required(*roles):
+    """
+    Simple RBAC decorator based on User.user_type.
+    Usage:
+        @jwt_required()
+        @role_required('admin')
+        def some_view(): ...
+    """
+    # Normalizamos a valores del Enum (e.g. 'admin', 'user')
+    allowed = {r.value if isinstance(r, UserTypeEnum) else str(r) for r in roles}
+
+    def decorator(fn):
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+            try:
+                user_id = get_jwt_identity()
+                if not user_id:
+                    return jsonify({'error': 'No autenticado'}), 401
+                user = User.query.get(int(user_id))
+                if not user:
+                    return jsonify({'error': 'Usuario no encontrado'}), 404
+                user_type = user.user_type.value if isinstance(user.user_type, UserTypeEnum) else str(user.user_type)
+                if user_type not in allowed:
+                    return jsonify({'error': 'No autorizado'}), 403
+            except Exception:
+                return jsonify({'error': 'No autorizado'}), 403
+            return fn(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
 
