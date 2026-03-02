@@ -54,12 +54,23 @@ def list_solicitudes():
     if err:
         return jsonify({'error': 'No autorizado'}), err
     try:
-        if user.user_type == UserTypeEnum.admin:
-            items = ItemRequest.query.order_by(ItemRequest.created_at.desc()).all()
-        else:
-            items = ItemRequest.query.filter_by(user_id=user.id).order_by(ItemRequest.created_at.desc()).all()
+        page = request.args.get('page', 1, type=int)
+        per_page = min(request.args.get('per_page', 20, type=int), 100)
+        per_page = max(1, per_page)
+        q = ItemRequest.query.order_by(ItemRequest.created_at.desc())
+        if user.user_type != UserTypeEnum.admin:
+            q = q.filter_by(user_id=user.id)
+        pagination = q.paginate(page=page, per_page=per_page, error_out=False)
+        items = [_serialize_solicitud(r) for r in pagination.items]
+        total = pagination.total
+        pages = pagination.pages or 1
         return jsonify({
-            'solicitudes': [_serialize_solicitud(r) for r in items]
+            'items': items,
+            'solicitudes': items,
+            'total': total,
+            'page': page,
+            'pages': pages,
+            'per_page': per_page
         }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

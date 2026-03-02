@@ -222,13 +222,21 @@ def register_movement(stock_id):
             to_location=data.get('to_location'),
             notes=data.get('notes')
         )
-
         db.session.add(movement)
-        
-        # Actualizar ubicación del stock si es necesario
-        if data.get('to_location'):
-            stock.location = data['to_location']
 
+        new_location = data.get('to_location') or stock.location
+        current_version = getattr(stock, 'version', 1)
+        rows = db.session.query(Stock).filter(
+            Stock.id == stock_id,
+            Stock.version == current_version
+        ).update({
+            Stock.location: new_location,
+            Stock.version: current_version + 1,
+            Stock.updated_at: datetime.utcnow()
+        }, synchronize_session=False)
+        if rows == 0:
+            db.session.rollback()
+            return jsonify({'error': 'El stock fue modificado por otro usuario', 'code': 'conflict'}), 409
         db.session.commit()
         return jsonify({'message': 'Movimiento registrado exitosamente'}), 201
 
@@ -258,12 +266,22 @@ def register_maintenance(stock_id):
         )
 
         db.session.add(maintenance)
-        
-        # Actualizar información de mantenimiento en el stock
-        stock.last_maintenance = maintenance.date_performed
-        stock.next_maintenance = maintenance.next_maintenance
-        stock.status = StockStatusEnum.mantenimiento if maintenance.status == 'en_proceso' else StockStatusEnum.disponible
-
+        next_maint = maintenance.next_maintenance
+        new_status = StockStatusEnum.mantenimiento if maintenance.status == 'en_proceso' else StockStatusEnum.disponible
+        current_version = getattr(stock, 'version', 1)
+        rows = db.session.query(Stock).filter(
+            Stock.id == stock_id,
+            Stock.version == current_version
+        ).update({
+            Stock.last_maintenance: maintenance.date_performed,
+            Stock.next_maintenance: next_maint,
+            Stock.status: new_status,
+            Stock.version: current_version + 1,
+            Stock.updated_at: datetime.utcnow()
+        }, synchronize_session=False)
+        if rows == 0:
+            db.session.rollback()
+            return jsonify({'error': 'El stock fue modificado por otro usuario', 'code': 'conflict'}), 409
         db.session.commit()
         return jsonify({'message': 'Mantenimiento registrado exitosamente'}), 201
 

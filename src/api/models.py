@@ -94,9 +94,7 @@ class User(UserMixin, db.Model):
         return f'<User {self.username}>'
 
     def to_dict(self):
-        print(f"Converting user to dict: {self.username}, type: {self.user_type}")  # Debug log
         user_type_value = self.user_type.value if isinstance(self.user_type, UserTypeEnum) else self.user_type
-        print(f"User type value: {user_type_value}")  # Debug log
         return {
             'id': self.id,
             'username': self.username,
@@ -129,6 +127,8 @@ class Stock(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     image_url = db.Column(db.String(200))
     deleted_at = db.Column(db.DateTime, nullable=True)  # soft delete
+    # Control de concurrencia optimista: se incrementa en cada actualización
+    version = db.Column(db.Integer, nullable=False, default=1)
 
     # Relaciones (CASCADE en hijos: al borrar stock se borran movimientos y mantenimientos)
     movements = db.relationship('StockMovement', back_populates='stock', passive_deletes=True)
@@ -140,6 +140,7 @@ class Stock(db.Model):
         Index('idx_stock_type', 'stocktype'),
         Index('idx_stock_created_at', 'created_at'),
         Index('idx_stock_deleted_at', 'deleted_at'),
+        Index('idx_stock_version', 'id', 'version'),
     )
 
     def __repr__(self):
