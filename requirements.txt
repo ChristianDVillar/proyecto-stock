@@ -10,7 +10,7 @@ flask-admin==0.6.1
 flask-login==0.6.3
 
 # Database
-SQLAlchemy==2.0.45
+SQLAlchemy==2.0.47
 psycopg2-binary==2.9.9
 
 # API Documentation
