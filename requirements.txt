@@ -14,7 +14,7 @@ SQLAlchemy==2.0.45
 psycopg2-binary==2.9.9
 
 # API Documentation
-flask-swagger-ui==4.11.1
+flask-swagger-ui==5.21.0
 flasgger==0.9.7.1
 
 # Utilities
