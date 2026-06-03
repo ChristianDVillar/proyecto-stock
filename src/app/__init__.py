@@ -2,10 +2,13 @@
 Application Factory Pattern
 Creates and configures the Flask application
 """
+import logging
+import os
+import sys
 from flask import Flask
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
-# from flask_migrate import Migrate  # Temporalmente deshabilitado por compatibilidad Python 3.13
+from flask_migrate import Migrate
 from flask_admin import Admin
 from flask_login import LoginManager
 from flasgger import Swagger
@@ -19,6 +22,29 @@ from .routes import register_blueprints
 from .errors import register_error_handlers
 
 
+def setup_logging(app):
+    """Logging estructurado: JSON en producción, texto en desarrollo."""
+    log_level = getattr(logging, (app.config.get('LOG_LEVEL') or 'INFO').upper(), logging.INFO)
+    app.logger.setLevel(log_level)
+    for h in list(app.logger.handlers):
+        app.logger.removeHandler(h)
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setLevel(log_level)
+    if not app.debug and not app.testing:
+        try:
+            from pythonjsonlogger import jsonlogger
+            formatter = jsonlogger.JsonFormatter(
+                '%(timestamp)s %(level)s %(name)s %(message)s',
+                timestamp=True
+            )
+            handler.setFormatter(formatter)
+        except Exception:
+            handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s: %(message)s'))
+    else:
+        handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s: %(message)s'))
+    app.logger.addHandler(handler)
+
+
 def create_app(config_name='development'):
     """
     Application factory pattern
@@ -29,10 +55,11 @@ def create_app(config_name='development'):
     # Load configuration
     config_class = Config.get_config(config_name)
     app.config.from_object(config_class)
+    setup_logging(app)
     
     # Initialize extensions
     db.init_app(app)
-    # Migrate(app, db)  # Temporalmente deshabilitado
+    Migrate(app, db)
     
     # Setup CORS
     CORS(app, 
@@ -57,9 +84,17 @@ def create_app(config_name='development'):
     login_manager.init_app(app)
     setup_login_manager(login_manager)
     
-    # Initialize Flask-Admin
-    admin.init_app(app)
-    setup_admin(admin, app)
+    # Flask-Admin: omitir en testing y en migraciones (evita blueprints duplicados)
+    skip_admin = (
+        config_name == 'testing'
+        or os.environ.get('FLASK_SKIP_ADMIN', '').lower() in ('1', 'true', 'yes')
+    )
+    if not skip_admin:
+        if not getattr(admin, '_views', None):
+            admin.init_app(app)
+            setup_admin(admin, app)
+        elif not admin.app:
+            admin.init_app(app)
     
     # Setup Swagger
     setup_swagger(app)
@@ -70,12 +105,11 @@ def create_app(config_name='development'):
     # Register error handlers
     register_error_handlers(app)
     
-    # Setup database
+    # Tablas: en producción/desarrollo vía migraciones (flask db upgrade).
+    # En testing creamos tablas aquí; el admin inicial se crea únicamente vía scripts/db-init.
     with app.app_context():
-        db.create_all()
-        from .models import User, UserTypeEnum
-        from werkzeug.security import generate_password_hash
-        init_default_admin()
+        if config_name == 'testing':
+            db.create_all()
     
     return app
 
@@ -146,6 +180,8 @@ def setup_login_manager(login_mgr):
 
 def setup_admin(admin_instance, app):
     """Configure Flask-Admin"""
+    if getattr(admin_instance, '_views', None):
+        return
     from flask_admin.contrib.sqla import ModelView
     from flask import redirect, url_for, request
     from flask_login import current_user
@@ -170,7 +206,8 @@ def setup_admin(admin_instance, app):
             if is_created or form.password.data:
                 model.password = generate_password_hash(form.password.data)
     
-    admin_instance.add_view(UserAdminView(User, db.session))
+    # endpoint distinto a 'user' para no chocar con el blueprint users
+    admin_instance.add_view(UserAdminView(User, db.session, endpoint='adminuser'))
     admin_instance.add_view(ModelView(Stock, db.session))
     admin_instance.add_view(ModelView(Form, db.session))
     admin_instance.add_view(ModelView(DetailForm, db.session))
@@ -217,21 +254,8 @@ def setup_swagger(app):
 
 
 def init_default_admin():
-    """Initialize default admin user if not exists"""
-    import os
-    from .models import User, UserTypeEnum
-    from werkzeug.security import generate_password_hash
-    
-    admin_username = os.environ.get('ADMIN_USERNAME', 'admin')
-    admin_password = os.environ.get('ADMIN_PASSWORD', 'admin123')
-    
-    admin_user = User.query.filter_by(username=admin_username).first()
-    if not admin_user:
-        admin_user = User(
-            username=admin_username,
-            password=generate_password_hash(admin_password),
-            user_type=UserTypeEnum.admin,
-            is_active=True
-        )
-        db.session.add(admin_user)
-        db.session.commit()
+    """
+    Deprecated: el usuario admin inicial se crea mediante el script scripts/init_db.py
+    (servicio db-init en Docker). Se mantiene solo por compatibilidad histórica.
+    """
+    return None

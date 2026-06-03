@@ -48,7 +48,7 @@ const Login = () => {
                 isLogin
             });
             
-            const response = await fetch(`http://localhost:5000${endpoint}`, {
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -98,7 +98,12 @@ const Login = () => {
             }
 
             // Intentar el login con el token recibido
-            const loginSuccess = await authStore.login(token, data.user.username, data.user.user_type);
+            const loginSuccess = await authStore.login(
+                token,
+                data.user.username,
+                data.user.user_type,
+                data.user.tenant_id
+            );
             
             if (!loginSuccess) {
                 throw new Error('Error al guardar los datos de autenticación');

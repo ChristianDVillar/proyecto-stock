@@ -45,9 +45,11 @@ FROM base AS production
 
 WORKDIR /app
 
-# Copiar código de la aplicación
+# Copiar código de la aplicación y migraciones
 COPY src/ ./src/
-COPY scripts/ ./scripts/
+COPY scripts/ ./
+COPY migrations/ ./migrations/
+COPY alembic.ini ./scripts/
 
 # Crear archivo wsgi.py para Gunicorn
 RUN echo "import os\nfrom app import create_app\napp = create_app(os.environ.get('FLASK_ENV', 'production'))" > src/wsgi.py

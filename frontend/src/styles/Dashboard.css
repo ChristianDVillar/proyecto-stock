@@ -1,0 +1,68 @@
+.dashboard { padding: 1.5rem; max-width: 1200px; margin: 0 auto; }
+.dashboard h1 { margin-bottom: 1.5rem; }
+.dashboard-loading, .dashboard-error { padding: 2rem; text-align: center; }
+.dashboard-error { color: #c0392b; }
+
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+.kpi-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 1rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    display: flex;
+    flex-direction: column;
+}
+.kpi-card.kpi-warn { border-left: 4px solid #e67e22; }
+.kpi-label { font-size: 0.85rem; color: #666; }
+.kpi-value { font-size: 1.5rem; font-weight: 700; margin-top: 0.25rem; }
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+@media (max-width: 768px) { .dashboard-grid { grid-template-columns: 1fr; } }
+
+.dashboard-panel {
+    background: #fff;
+    border-radius: 8px;
+    padding: 1.25rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    margin-bottom: 1.5rem;
+}
+.dashboard-panel h2 { font-size: 1.1rem; margin-bottom: 1rem; }
+
+.category-list { list-style: none; padding: 0; margin: 0; }
+.category-list li {
+    display: grid;
+    grid-template-columns: 100px 1fr 50px;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+.cat-bar-wrap { background: #eee; border-radius: 4px; height: 8px; overflow: hidden; }
+.cat-bar { background: #3498db; height: 100%; border-radius: 4px; }
+.cat-pct { font-size: 0.85rem; text-align: right; }
+
+.movements-summary { display: flex; gap: 2rem; }
+.mov-item { text-align: center; }
+.mov-in strong { color: #27ae60; font-size: 1.5rem; }
+.mov-out strong { color: #e74c3c; font-size: 1.5rem; }
+
+.dash-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.dash-table th, .dash-table td { padding: 0.5rem; border-bottom: 1px solid #eee; text-align: left; }
+.dash-table th { background: #f8f9fa; }
+
+.level-normal { color: #27ae60; font-weight: 600; }
+.level-bajo { color: #e67e22; font-weight: 600; }
+.level-critico { color: #e74c3c; font-weight: 600; }
+.alert-7_dias { color: #e74c3c; }
+.alert-30_dias { color: #e67e22; }
+.alert-90_dias { color: #f39c12; }
+.empty-msg { color: #888; font-style: italic; }

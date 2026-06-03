@@ -1,24 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
 import authStore from '../../stores/AuthStore';
 import '../../styles/Header.css';
 
-const Header = ({ onNavigate, isAdmin }) => {
+const Header = ({ isAdmin }) => {
     const [userName, setUserName] = useState(authStore.getUserName());
     const [showDropdown, setShowDropdown] = useState(false);
     const [currentTime, setCurrentTime] = useState(new Date());
+    const navigate = useNavigate();
 
     useEffect(() => {
-        const handleAuthChange = () => {
-            setUserName(authStore.getUserName());
-        };
-
+        const handleAuthChange = () => setUserName(authStore.getUserName());
         authStore.on('change', handleAuthChange);
-
-        // Actualizar la hora cada segundo
-        const timer = setInterval(() => {
-            setCurrentTime(new Date());
-        }, 1000);
-
+        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
         return () => {
             authStore.removeListener('change', handleAuthChange);
             clearInterval(timer);
@@ -30,34 +24,67 @@ const Header = ({ onNavigate, isAdmin }) => {
         setShowDropdown(false);
     };
 
-    const handleNavigation = (view) => {
-        onNavigate(view);
+    const handleNav = (path) => {
         setShowDropdown(false);
+        navigate(path);
     };
 
     return (
         <header className="header">
             <div className="logo">Control de Stock</div>
             <nav className="nav">
-                <button 
-                    className="nav-button" 
-                    onClick={() => handleNavigation('nuevo-inventario')}
-                >
-                    Nuevo Inventario
-                </button>
-                <button 
-                    className="nav-button" 
-                    onClick={() => handleNavigation('consultar')}
-                >
-                    Consultar Inventario
-                </button>
                 {isAdmin && (
-                    <button 
-                        className="nav-button" 
-                        onClick={() => handleNavigation('usuarios')}
-                    >
+                    <>
+                        <NavLink to="/dashboard" className={({ isActive }) => 'nav-button' + (isActive ? ' active' : '')}>
+                            Dashboard
+                        </NavLink>
+                        <NavLink to="/" className={({ isActive }) => 'nav-button' + (isActive ? ' active' : '')}>
+                            Nuevo Inventario
+                        </NavLink>
+                        <NavLink to="/consultar" className={({ isActive }) => 'nav-button' + (isActive ? ' active' : '')}>
+                            Consultar Inventario
+                        </NavLink>
+                        <NavLink to="/proveedores" className={({ isActive }) => 'nav-button' + (isActive ? ' active' : '')}>
+                            Proveedores
+                        </NavLink>
+                        <NavLink to="/ordenes-compra" className={({ isActive }) => 'nav-button' + (isActive ? ' active' : '')}>
+                            Órdenes de compra
+                        </NavLink>
+                        <NavLink to="/almacenes" className={({ isActive }) => 'nav-button' + (isActive ? ' active' : '')}>
+                            Almacenes
+                        </NavLink>
+                        <NavLink to="/transferencias" className={({ isActive }) => 'nav-button' + (isActive ? ' active' : '')}>
+                            Transferencias
+                        </NavLink>
+                        <NavLink to="/escaneo" className={({ isActive }) => 'nav-button' + (isActive ? ' active' : '')}>
+                            Escaneo rápido
+                        </NavLink>
+                        <NavLink to="/inventario-ciclico" className={({ isActive }) => 'nav-button' + (isActive ? ' active' : '')}>
+                            Inv. cíclico
+                        </NavLink>
+                        <NavLink to="/alertas" className={({ isActive }) => 'nav-button' + (isActive ? ' active' : '')}>
+                            Alertas
+                        </NavLink>
+                        <NavLink to="/planes" className={({ isActive }) => 'nav-button' + (isActive ? ' active' : '')}>
+                            Planes
+                        </NavLink>
+                        <NavLink to="/integraciones" className={({ isActive }) => 'nav-button' + (isActive ? ' active' : '')}>
+                            API
+                        </NavLink>
+                    </>
+                )}
+                {!isAdmin && (
+                    <NavLink to="/portal" className={({ isActive }) => 'nav-button' + (isActive ? ' active' : '')}>
+                        Mi portal
+                    </NavLink>
+                )}
+                <NavLink to="/solicitar" className={({ isActive }) => 'nav-button' + (isActive ? ' active' : '')}>
+                    Solicitar elementos
+                </NavLink>
+                {isAdmin && (
+                    <NavLink to="/admin" className={({ isActive }) => 'nav-button' + (isActive ? ' active' : '')}>
                         Gestión de Usuarios
-                    </button>
+                    </NavLink>
                 )}
                 <a href="mailto:christianvillar@live.com.ar" className="nav-button">
                     Contacto
@@ -66,7 +93,7 @@ const Header = ({ onNavigate, isAdmin }) => {
                     {currentTime.toLocaleString()}
                 </div>
                 <div className="user-menu">
-                    <button 
+                    <button
                         className="user-button"
                         onClick={() => setShowDropdown(!showDropdown)}
                     >
@@ -75,14 +102,10 @@ const Header = ({ onNavigate, isAdmin }) => {
                     {showDropdown && (
                         <div className="dropdown-menu">
                             {isAdmin && (
-                                <button 
-                                    className="admin-option"
-                                    onClick={() => handleNavigation('usuarios')}
-                                >
+                                <button className="admin-option" onClick={() => handleNav('/admin')}>
                                     Gestión de Usuarios
                                 </button>
                             )}
-                            <button onClick={() => handleNavigation('profile')}>Mi Perfil</button>
                             <button onClick={handleLogout}>Cerrar Sesión</button>
                         </div>
                     )}

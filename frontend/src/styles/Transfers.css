@@ -1,0 +1,9 @@
+.transfers-page { padding: 1.5rem; max-width: 900px; margin: 0 auto; }
+.tr-form { background: #fff; padding: 1.25rem; border-radius: 8px; display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+.tr-form select, .tr-form input { padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; }
+.tr-form button { background: #2980b9; color: #fff; border: none; padding: 0.6rem; border-radius: 4px; cursor: pointer; }
+.tr-card { background: #fff; padding: 1rem; margin-bottom: 0.75rem; border-radius: 6px; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.tr-status { font-size: 0.85rem; padding: 0.2rem 0.5rem; border-radius: 4px; background: #fef9e7; }
+.tr-completada { background: #eafaf1; }
+.msg-ok { color: #27ae60; }
+.msg-err { color: #e74c3c; }

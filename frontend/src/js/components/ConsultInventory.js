@@ -1,108 +1,73 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { FaSearch, FaFilter, FaEye } from 'react-icons/fa';
 import authStore from '../../stores/AuthStore';
 import '../../styles/ConsultInventory.css';
 
-const ConsultInventory = () => {
-    const [stocks, setStocks] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [filters, setFilters] = useState({
-        type: '',
-        status: '',
-        location: ''
+const itemsPerPage = 20;
+
+async function fetchStockTypes() {
+    const token = authStore.getToken();
+    const res = await fetch('/api/stock/types', {
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        credentials: 'include'
     });
+    if (!res.ok) throw new Error('Error al cargar tipos');
+    const data = await res.json();
+    return data.types || [];
+}
+
+async function fetchStockSearch({ page, q, type, status, location }) {
+    const token = authStore.getToken();
+    if (!token) throw new Error('No hay sesión activa');
+    const params = new URLSearchParams({ page, per_page: itemsPerPage });
+    if (q) params.append('q', q);
+    if (type) params.append('type', type);
+    if (status) params.append('status', status);
+    if (location) params.append('location', location);
+    const res = await fetch(`/api/stock/search?${params}`, {
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        credentials: 'include'
+    });
+    if (res.status === 401) authStore.logout();
+    if (!res.ok) throw new Error('Error al buscar inventario');
+    return res.json();
+}
+
+const ConsultInventory = () => {
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filters, setFilters] = useState({ type: '', status: '', location: '' });
     const [showFilters, setShowFilters] = useState(false);
-    const [stockTypes, setStockTypes] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const [totalItems, setTotalItems] = useState(0);
     const [selectedStock, setSelectedStock] = useState(null);
+    const [assetHistory, setAssetHistory] = useState(null);
     const [showDetails, setShowDetails] = useState(false);
-    const itemsPerPage = 20;
 
-    useEffect(() => {
-        loadStockTypes();
-        searchStocks();
-    }, [currentPage, searchQuery, filters]);
+    const { data: stockTypes = [] } = useQuery({
+        queryKey: ['stockTypes'],
+        queryFn: fetchStockTypes,
+        staleTime: 5 * 60 * 1000
+    });
 
-    const loadStockTypes = async () => {
-        try {
-            const token = authStore.getToken();
-            const response = await fetch('http://localhost:5000/api/stock/types', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            if (response.ok) {
-                const data = await response.json();
-                setStockTypes(data.types || []);
-            }
-        } catch (err) {
-            console.error('Error loading stock types:', err);
-        }
-    };
+    const { data: searchData, isLoading: loading, error: searchError } = useQuery({
+        queryKey: ['stockSearch', currentPage, searchQuery, filters.type, filters.status, filters.location],
+        queryFn: () => fetchStockSearch({
+            page: currentPage,
+            q: searchQuery,
+            type: filters.type,
+            status: filters.status,
+            location: filters.location
+        })
+    });
 
-    const searchStocks = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const token = authStore.getToken();
-            if (!token) {
-                throw new Error('No hay sesión activa');
-            }
-
-            const params = new URLSearchParams({
-                page: currentPage,
-                per_page: itemsPerPage
-            });
-
-            if (searchQuery) {
-                params.append('q', searchQuery);
-            }
-            if (filters.type) {
-                params.append('type', filters.type);
-            }
-            if (filters.status) {
-                params.append('status', filters.status);
-            }
-            if (filters.location) {
-                params.append('location', filters.location);
-            }
-
-            const response = await fetch(`http://localhost:5000/api/stock/search?${params}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (!response.ok) {
-                if (response.status === 401) {
-                    authStore.logout();
-                    return;
-                }
-                throw new Error('Error al buscar inventario');
-            }
-
-            const data = await response.json();
-            setStocks(data.stocks || []);
-            setTotalPages(data.total_pages || 1);
-            setTotalItems(data.total_items || 0);
-        } catch (err) {
-            setError(err.message);
-            console.error('Error searching stocks:', err);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const stocks = searchData?.stocks ?? [];
+    const totalPages = searchData?.total_pages ?? 1;
+    const totalItems = searchData?.total_items ?? 0;
+    const error = searchError?.message ?? null;
 
     const handleSearch = (e) => {
         e.preventDefault();
         setCurrentPage(1);
-        searchStocks();
     };
 
     const handleFilterChange = (field, value) => {
@@ -129,7 +94,7 @@ const ConsultInventory = () => {
             const stock = stocks.find(s => s.id === stockId);
             if (!stock) return;
 
-            const response = await fetch(`http://localhost:5000/api/stock/${stock.barcode}`, {
+            const response = await fetch(`/api/stock/${stock.barcode}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -139,7 +104,14 @@ const ConsultInventory = () => {
             if (response.ok) {
                 const data = await response.json();
                 setSelectedStock(data);
+                setAssetHistory(null);
                 setShowDetails(true);
+                const histRes = await fetch(`/api/stock/${stock.id}/asset-history`, {
+                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+                });
+                if (histRes.ok) {
+                    setAssetHistory(await histRes.json());
+                }
             }
         } catch (err) {
             console.error('Error loading stock details:', err);
@@ -263,6 +235,8 @@ const ConsultInventory = () => {
                                     <th>Dispositivo</th>
                                     <th>Modelo</th>
                                     <th>Cantidad</th>
+                                    <th>Nivel stock</th>
+                                    <th>Vencimiento</th>
                                     <th>Estado</th>
                                     <th>Ubicación</th>
                                     <th>Acciones</th>
@@ -276,6 +250,12 @@ const ConsultInventory = () => {
                                         <td>{stock.dispositivo?.value || stock.dispositivo}</td>
                                         <td>{stock.modelo}</td>
                                         <td>{stock.cantidad}</td>
+                                        <td>
+                                            <span className={`stock-level stock-level-${stock.stock_level || 'normal'}`}>
+                                                {stock.stock_level === 'critico' ? '🔴 Crítico' : stock.stock_level === 'bajo' ? '🟡 Bajo' : '🟢 Normal'}
+                                            </span>
+                                        </td>
+                                        <td>{stock.expiration_date || '—'}</td>
                                         <td>
                                             <span className={`status-badge ${getStatusBadgeClass(stock.status)}`}>
                                                 {stock.status}
@@ -368,8 +348,75 @@ const ConsultInventory = () => {
                                         <label>Ubicación:</label>
                                         <span>{selectedStock.stock.location || 'N/A'}</span>
                                     </div>
+                                    {selectedStock.stock.expiration_date && (
+                                        <div className="detail-item">
+                                            <label>Vencimiento:</label>
+                                            <span>{selectedStock.stock.expiration_date}</span>
+                                        </div>
+                                    )}
+                                    {selectedStock.stock.batch_number && (
+                                        <div className="detail-item">
+                                            <label>Lote:</label>
+                                            <span>{selectedStock.stock.batch_number}</span>
+                                        </div>
+                                    )}
+                                    {selectedStock.stock.supplier_name && (
+                                        <div className="detail-item">
+                                            <label>Proveedor:</label>
+                                            <span>{selectedStock.stock.supplier_name}</span>
+                                        </div>
+                                    )}
+                                    {selectedStock.stock.stock_level && (
+                                        <div className="detail-item">
+                                            <label>Nivel stock:</label>
+                                            <span className={`stock-level stock-level-${selectedStock.stock.stock_level}`}>
+                                                {selectedStock.stock.stock_level}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {(selectedStock.stock.contains_gluten || selectedStock.stock.contains_milk ||
+                                      selectedStock.stock.contains_nuts || selectedStock.stock.contains_soy) && (
+                                        <div className="detail-item detail-allergens">
+                                            <label>Alérgenos:</label>
+                                            <span>
+                                                {[
+                                                    selectedStock.stock.contains_gluten && 'Gluten',
+                                                    selectedStock.stock.contains_milk && 'Lácteos',
+                                                    selectedStock.stock.contains_nuts && 'Frutos secos',
+                                                    selectedStock.stock.contains_soy && 'Soja',
+                                                ].filter(Boolean).join(', ')}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {selectedStock.stock.serial_number && (
+                                        <div className="detail-item">
+                                            <label>Nº serie:</label>
+                                            <span>{selectedStock.stock.serial_number}</span>
+                                        </div>
+                                    )}
+                                    {selectedStock.stock.assigned_user && (
+                                        <div className="detail-item">
+                                            <label>Asignado a:</label>
+                                            <span>{selectedStock.stock.assigned_user}</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
+
+                            {assetHistory?.asset_events?.length > 0 && (
+                                <div className="detail-section">
+                                    <h3>Historial del activo</h3>
+                                    <ul className="asset-timeline">
+                                        {assetHistory.asset_events.map((evt) => (
+                                            <li key={evt.id}>
+                                                <strong>{evt.event_type}</strong>
+                                                <span>{evt.description || ''}</span>
+                                                <small>{new Date(evt.created_at).toLocaleString()}</small>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
 
                             {selectedStock.movements && selectedStock.movements.length > 0 && (
                                 <div className="detail-section">

@@ -1,5 +1,4 @@
 """
-Business logic services
-Separation of concerns: routes handle HTTP, services handle business logic
+App-level services (vacío). La lógica de negocio de stock y auth está en api.services.
 """
 

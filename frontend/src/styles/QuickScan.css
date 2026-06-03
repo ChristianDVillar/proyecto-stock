@@ -1,0 +1,8 @@
+.quick-scan-page { padding: 1rem; max-width: 640px; margin: 0 auto; }
+.qs-desc { color: #555; margin-bottom: 1rem; }
+.qs-controls { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem; }
+.qs-controls input { font-size: 1.1rem; padding: 0.75rem; }
+.qs-controls button { padding: 0.75rem; background: #1a365d; color: #fff; border: none; border-radius: 4px; }
+.qs-list { list-style: none; padding: 0; margin: 0; }
+.qs-list li { padding: 0.6rem; border-bottom: 1px solid #eee; display: flex; flex-direction: column; gap: 0.2rem; }
+.qs-list li.qs-error { background: #fff5f5; color: #c53030; }

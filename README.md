@@ -1,8 +1,6 @@
 # Proyecto Stock
 
-Proyecto personal de gestión de inventario desarrollado como ejercicio práctico de desarrollo full-stack, cubriendo backend, frontend web y una aplicación móvil sencilla.
-
-La idea de este proyecto no fue "hacerlo todo perfecto", sino construir algo real, funcional y entendible, similar a lo que se puede encontrar en un entorno de trabajo pequeño o medio.
+Aplicación full-stack de gestión de inventario con **arquitectura desacoplada**: autenticación JWT (access + refresh en cookie), control de roles, migraciones versionadas (Flask-Migrate), soft delete, auditoría en base de datos y testing automatizado, dockerizada para despliegue reproducible.
 
 [![CI](https://github.com/ChristianDVillar/proyecto-stock/actions/workflows/ci.yml/badge.svg)](https://github.com/ChristianDVillar/proyecto-stock/actions)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -14,94 +12,82 @@ La idea de este proyecto no fue "hacerlo todo perfecto", sino construir algo rea
 
 ---
 
+## Arquitectura
+
+```
+                    ┌─────────────┐
+                    │   Nginx     │  :9001  (proxy + headers seguridad)
+                    └──────┬──────┘
+           ┌───────────────┼───────────────┐
+           ▼               ▼               ▼
+    ┌────────────┐  ┌────────────┐  ┌────────────┐
+    │  Frontend  │  │  /api      │  │ /api-docs  │
+    │  (React)   │  │  Backend   │  │  /admin    │
+    │  :7000     │  │  (Flask)   │  │            │
+    └────────────┘  └──────┬─────┘  └────────────┘
+                           │
+              ┌────────────┼────────────┐
+              ▼            ▼            ▼
+        ┌──────────┐ ┌──────────┐ ┌──────────┐
+        │ Postgres │ │  Redis   │ │ Elastic  │
+        │  :5432   │ │  :6379   │ │  :9200   │
+        └──────────┘ └──────────┘ └──────────┘
+```
+
+**Backend (capas):** Rutas → Servicios (lógica de negocio) → Repositorios (acceso a datos) → Modelos. Migraciones con Flask-Migrate/Alembic; sin `db.create_all()` en arranque.
+
 ## ¿Qué hace el proyecto?
 
-Proyecto Stock permite:
+- Gestionar productos y stock (CRUD, búsqueda paginada)
+- **Soft delete**: eliminación lógica con `deleted_at` y registro en `stock_history`
+- Autenticación JWT: access token corto (15 min) + refresh token en cookie HTTP-only
+- Control de roles (admin / user) y rutas protegidas
+- Rate limiting (auth 5/min; API 100/h) con Redis en Docker
+- Auditoría: tabla `stock_history` con cambios (create, update, soft_delete)
 
-- Gestionar productos y stock
-- Crear, editar y eliminar artículos
-- Controlar cantidades disponibles
-- Buscar y paginar resultados
-- Autenticarse mediante usuario y contraseña
-- Escanear códigos de barras desde web o móvil
+## Decisiones técnicas
 
-Está pensado como una base sólida, no como un producto final listo para producción.
+| Área | Decisión | Motivo |
+|------|----------|--------|
+| Auth | JWT access + refresh en cookie | Access corto; refresh no accesible desde JS |
+| DB | Flask-Migrate / Alembic | Migraciones versionadas, sin create_all en app |
+| Backend | Rutas → Services → Repositories | Testable, mantenible, desacoplado |
+| Stock | Soft delete + stock_history | Trazabilidad y buenas prácticas |
+| Límites | Rate limit login/API | Redis en producción |
+| Frontend | React Router + React Query | Navegación y cache/retry estándar |
 
-## Estructura general
+## Tecnologías
 
-El proyecto está dividido en tres partes principales:
+**Backend:** Python 3.11, Flask 3, SQLAlchemy 2, Flask-JWT-Extended, Flask-Migrate, Flask-Limiter, Flasgger (Swagger)
 
-- **Backend**: API REST desarrollada con Flask
-- **Frontend Web**: Aplicación React para uso desde navegador
-- **Aplicación móvil**: App en React Native orientada a escaneo y consulta rápida
+**Frontend:** React 18, React Router 6, TanStack React Query, Quagga2 (códigos de barras)
 
-La separación se hizo para evitar un enfoque monolítico y para que cada parte pueda evolucionar de forma independiente si fuera necesario.
-
-## Decisiones técnicas (explicadas de forma honesta)
-
-Durante el desarrollo se tomaron varias decisiones conscientes:
-
-- **Se eligió Flask por simplicidad**. No era necesario algo más complejo para el alcance del proyecto.
-- **La autenticación se implementó con JWT sin refresh tokens** para mantener el código claro y fácil de seguir.
-- **El frontend prioriza legibilidad y orden del código** antes que optimizaciones avanzadas.
-- **No se usaron arquitecturas complejas** (microservicios, colas, etc.) porque no aportaban valor real al objetivo del proyecto.
-- **La app móvil reutiliza conceptos del frontend web** para evitar duplicar lógica innecesariamente.
-
-La intención fue siempre mantener el equilibrio entre buenas prácticas y simplicidad.
-
-## Tecnologías utilizadas
-
-**Backend:**
-- Python
-- Flask
-- SQLAlchemy
-- JWT
-- Swagger / OpenAPI
-
-**Frontend Web:**
-- React 18
-- React Router
-- Quagga2 (lector de códigos de barras)
-- React Icons
-
-**Aplicación móvil:**
-- React Native
-- TypeScript
-
-**Testing:**
-- pytest (backend)
-- Jest / Testing Library (frontend)
+**Infra:** Docker Compose (Nginx, Postgres, Redis, Elasticsearch), Gunicorn
 
 ## Tests
 
-El proyecto incluye tests básicos tanto en backend como en frontend.
+- **Backend:** pytest; tests de login, creación de stock, permisos admin, soft delete e integración.
+- **Frontend:** Jest + React Testing Library.
 
-No se buscó una cobertura del 100%, sino asegurar que:
-- Los endpoints principales funcionan
-- La lógica crítica no se rompe con cambios
-- Los componentes clave renderizan correctamente
+Ejecutar tests backend con cobertura:
+```bash
+cd proyecto-stock
+pip install -r requirements.txt
+PYTHONPATH=src pytest tests/ -v --cov=src --cov-report=term-missing
+```
 
 ## Seguridad
 
-Se tuvieron en cuenta aspectos básicos de seguridad habituales en proyectos de este tipo:
-
-- Validación de datos de entrada
-- Uso de JWT para autenticación
-- Configuración de CORS
-- Revisión manual de dependencias vulnerables
-
-Existe un archivo específico ([VULNERABILITIES_REPORT.md](VULNERABILITIES_REPORT.md)) donde se documentan los puntos revisados.
+- Contraseñas con hash (werkzeug); JWT access corto (15 min) + refresh en cookie HTTP-only.
+- Rate limiting en auth (5/min) y API (100/h); en Docker con Redis.
+- Validación de entradas; CORS configurado; headers de seguridad en Nginx (X-Frame-Options, X-Content-Type-Options, Referrer-Policy).
+- Variables sensibles por entorno; ver `.env.example` y [SECURITY.md](SECURITY.md).
 
 ## Limitaciones conocidas
 
-Este proyecto tiene varias limitaciones asumidas a propósito:
-
-- No hay sistema avanzado de roles (solo un esquema simple)
-- No se implementaron refresh tokens
-- La app móvil no funciona offline
-- El despliegue está pensado para entornos de desarrollo o demo
-
-Estas limitaciones se dejaron explícitas para no sobre-complicar el proyecto.
+- Roles: admin / user (no RBAC granular).
+- App móvil no offline.
+- Despliegue orientado a desarrollo/demo; producción requiere .env seguro y revisión de [SECURITY.md](SECURITY.md).
 
 ## Instalación y uso
 
@@ -110,35 +96,39 @@ Estas limitaciones se dejaron explícitas para no sobre-complicar el proyecto.
 ```bash
 git clone https://github.com/ChristianDVillar/proyecto-stock.git
 cd proyecto-stock
-
-# ⚠️ Para producción, crea un archivo .env con valores seguros
-# Ver SECURITY.md para más información
-
+# Copiar .env.example a .env y ajustar valores (producción: valores seguros)
 docker-compose up -d
 ```
 
-El proyecto estará disponible en:
-- Frontend: http://localhost:7000
-- Backend API: http://localhost:3000
-- Nginx Proxy: http://localhost:9001
-- API Docs: http://localhost:9001/api-docs
+Disponible en: **Nginx** http://localhost:9001 (frontend + API), **API Docs** http://localhost:9001/api-docs. Migraciones y usuario admin se aplican vía servicios `migrate` y `db-init`.
 
-### Manual
+### Manual (desarrollo)
 
-**Backend:**
-```bash
-pip install -r requirements.txt
+**Backend:** Antes del primer arranque, aplicar migraciones (no se usa `db.create_all()`).
+
+En **Windows (PowerShell)**:
+```powershell
+pip install -r requirements-dev.txt
+$env:PYTHONPATH = "src"
+$env:FLASK_APP = "src/run.py"
+python -m flask db upgrade
 python src/run.py
 ```
 
-**Frontend:**
+En **Linux/macOS**:
 ```bash
-cd frontend
-npm install
-npm start
+pip install -r requirements-dev.txt
+export PYTHONPATH=src FLASK_APP=src/run.py
+python -m flask db upgrade
+python src/run.py
 ```
 
-Para más detalles, ver la documentación incluida en el repositorio.
+> **Nota:** Usa `python -m flask` para que funcione aunque el comando `flask` no esté en el PATH. En desarrollo sin PostgreSQL usa `requirements-dev.txt` (sin psycopg2); en Python 3.13, Pillow está como `>=11` para evitar errores de compilación.
+
+**Frontend:**
+```bash
+cd frontend && npm install && npm start
+```
 
 ## Ejemplos de uso de la API
 
@@ -165,7 +155,7 @@ curl -X POST http://localhost:3000/api/stock \
   }'
 ```
 
-Ver [docs/API.md](docs/API.md) para más ejemplos.
+Ver [FUNCIONAMIENTO.md](FUNCIONAMIENTO.md) para más detalles del sistema y flujos.
 
 ## Objetivo del proyecto
 
@@ -180,11 +170,12 @@ No es un tutorial ni un boilerplate, sino un proyecto trabajado y mejorado de fo
 
 ## Documentación
 
-- [API Documentation](docs/API.md)
-- [Deployment Guide](docs/DEPLOYMENT.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Security Guide](SECURITY.md)
-- [Implementation Summary](IMPLEMENTATION_SUMMARY.md)
+- [Funcionamiento del sistema](FUNCIONAMIENTO.md)
+- [Roadmap comercial (Fase 1–3)](ROADMAP_COMERCIAL.md)
+- [Estructura y funcionamiento actual (referencia para mejoras)](ESTRUCTURA_Y_FUNCIONAMIENTO_ACTUAL.md)
+- [Decisiones técnicas](TECH_DECISIONS.md)
+- [Guía de seguridad](SECURITY.md)
+- [Resumen de implementación](IMPLEMENTATION_SUMMARY.md)
 
 ## Autor
 
@@ -198,5 +189,5 @@ MIT License - Ver [LICENSE](LICENSE) para más detalles.
 ---
 
 **Versión:** 1.0.0  
-**Última actualización:** 2025
+**Última actualización:** 2026
 

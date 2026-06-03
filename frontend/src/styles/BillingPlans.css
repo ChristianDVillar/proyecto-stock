@@ -1,0 +1,7 @@
+.billing-plans { padding: 1rem; }
+.usage-box { background: #f7fafc; padding: 1rem; border-radius: 6px; margin-bottom: 1.5rem; }
+.plan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; }
+.plan-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; text-align: center; }
+.plan-card.active { border-color: #2b6cb0; box-shadow: 0 0 0 2px #bee3f8; }
+.plan-price { font-size: 1.5rem; font-weight: bold; color: #1a365d; }
+.billing-msg { color: #276749; margin-top: 1rem; }

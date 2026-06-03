@@ -415,3 +415,22 @@
     }
 }
 
+.asset-timeline {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.asset-timeline li {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+.asset-timeline li strong { text-transform: capitalize; color: #2980b9; }
+.asset-timeline li small { color: #888; }
+
+.stock-level-normal { color: #27ae60; font-weight: 600; }
+.stock-level-bajo { color: #e67e22; font-weight: 600; }
+.stock-level-critico { color: #e74c3c; font-weight: 600; }
+

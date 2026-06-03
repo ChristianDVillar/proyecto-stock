@@ -1,0 +1,9 @@
+.warehouses-page { padding: 1.5rem; max-width: 900px; margin: 0 auto; }
+.wh-form, .wh-list { background: #fff; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+.wh-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem; }
+.wh-form input { padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; width: 100%; box-sizing: border-box; }
+.wh-form button { background: #2980b9; color: #fff; border: none; padding: 0.6rem 1rem; border-radius: 4px; cursor: pointer; }
+.wh-list table { width: 100%; border-collapse: collapse; }
+.wh-list th, .wh-list td { padding: 0.5rem; border-bottom: 1px solid #eee; text-align: left; }
+.wh-stock-panel { background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-top: 1rem; }
+.msg-ok { color: #27ae60; }

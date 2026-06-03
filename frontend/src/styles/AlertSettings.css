@@ -1,0 +1,4 @@
+.alert-settings { padding: 1rem; max-width: 720px; }
+.alert-form { display: flex; flex-direction: column; gap: 0.5rem; margin: 1rem 0; }
+.alert-actions { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+.alert-msg { color: #276749; background: #f0fff4; padding: 0.5rem; border-radius: 4px; }
