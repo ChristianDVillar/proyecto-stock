@@ -10,6 +10,12 @@ from api.routes import api
 from api.auth import auth
 from api.users import users
 from api.solicitudes import solicitudes
+from api.suppliers import suppliers
+from api.purchase_orders import purchase_orders
+from api.dashboard import dashboard
+from api.tenants import tenants
+from api.warehouses import warehouses
+from api.transfers import transfers
 
 
 def register_blueprints(app, limiter):
@@ -19,6 +25,12 @@ def register_blueprints(app, limiter):
     app.register_blueprint(auth, url_prefix='/api/auth')
     app.register_blueprint(users, url_prefix='/api/users')
     app.register_blueprint(solicitudes, url_prefix='/api/solicitudes')
+    app.register_blueprint(suppliers, url_prefix='/api/suppliers')
+    app.register_blueprint(purchase_orders, url_prefix='/api/purchase-orders')
+    app.register_blueprint(dashboard, url_prefix='/api/dashboard')
+    app.register_blueprint(tenants, url_prefix='/api/tenants')
+    app.register_blueprint(warehouses, url_prefix='/api/warehouses')
+    app.register_blueprint(transfers, url_prefix='/api/transfers')
     
     # Apply rate limiting
     limiter.limit("5 per minute")(auth)

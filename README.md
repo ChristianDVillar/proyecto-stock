@@ -171,6 +171,8 @@ No es un tutorial ni un boilerplate, sino un proyecto trabajado y mejorado de fo
 ## Documentación
 
 - [Funcionamiento del sistema](FUNCIONAMIENTO.md)
+- [Roadmap comercial (Fase 1–3)](ROADMAP_COMERCIAL.md)
+- [Estructura y funcionamiento actual (referencia para mejoras)](ESTRUCTURA_Y_FUNCIONAMIENTO_ACTUAL.md)
 - [Decisiones técnicas](TECH_DECISIONS.md)
 - [Guía de seguridad](SECURITY.md)
 - [Resumen de implementación](IMPLEMENTATION_SUMMARY.md)

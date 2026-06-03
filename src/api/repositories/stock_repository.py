@@ -29,8 +29,11 @@ class StockRepository:
         return q.first()
 
     @staticmethod
-    def exists_barcode(barcode: str) -> bool:
-        return Stock.query.filter_by(barcode=barcode).first() is not None
+    def exists_barcode(barcode: str, tenant_id=None) -> bool:
+        q = Stock.query.filter_by(barcode=barcode)
+        if tenant_id is not None:
+            q = q.filter_by(tenant_id=tenant_id)
+        return q.first() is not None
 
     @staticmethod
     def add(stock: Stock) -> Stock:

@@ -3,6 +3,7 @@ Application Factory Pattern
 Creates and configures the Flask application
 """
 import logging
+import os
 import sys
 from flask import Flask
 from flask_cors import CORS
@@ -83,10 +84,17 @@ def create_app(config_name='development'):
     login_manager.init_app(app)
     setup_login_manager(login_manager)
     
-    # Flask-Admin solo fuera de testing (evita conflicto de blueprints al crear varias apps en tests)
-    if config_name != 'testing':
-        admin.init_app(app)
-        setup_admin(admin, app)
+    # Flask-Admin: omitir en testing y en migraciones (evita blueprints duplicados)
+    skip_admin = (
+        config_name == 'testing'
+        or os.environ.get('FLASK_SKIP_ADMIN', '').lower() in ('1', 'true', 'yes')
+    )
+    if not skip_admin:
+        if not getattr(admin, '_views', None):
+            admin.init_app(app)
+            setup_admin(admin, app)
+        elif not admin.app:
+            admin.init_app(app)
     
     # Setup Swagger
     setup_swagger(app)
@@ -172,6 +180,8 @@ def setup_login_manager(login_mgr):
 
 def setup_admin(admin_instance, app):
     """Configure Flask-Admin"""
+    if getattr(admin_instance, '_views', None):
+        return
     from flask_admin.contrib.sqla import ModelView
     from flask import redirect, url_for, request
     from flask_login import current_user

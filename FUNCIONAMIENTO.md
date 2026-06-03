@@ -1,5 +1,7 @@
 # Funcionamiento del Proyecto Stock
 
+> Para el estado **actual del código** (rutas, permisos, CI, backlog de mejoras), ver [ESTRUCTURA_Y_FUNCIONAMIENTO_ACTUAL.md](ESTRUCTURA_Y_FUNCIONAMIENTO_ACTUAL.md).
+
 Este documento describe la estructura actual y el flujo del sistema: arranque, capas del backend, componentes, autenticación y uso de la API.
 
 ---
@@ -74,7 +76,7 @@ Proyecto Stock es una aplicación de gestión de inventario con arquitectura en 
 
 5. **Stock**:
    - Creación y búsqueda pasan por `StockService` y `StockRepository`.
-   - Operaciones críticas (alta de stock + movimiento inicial + auditoría, soft delete + historial) se ejecutan en una única transacción (`with db.session.begin()`).
+   - Operaciones críticas (alta de stock + movimiento inicial + auditoría, soft delete + historial) se confirman con `db.session.commit()` en la ruta tras el servicio.
    - Eliminación: `DELETE /api/stock/<id>` hace **soft delete** (marca `deleted_at` y registra en `stock_history`). Las consultas excluyen siempre los registros con `deleted_at` no nulo.
 
 ---

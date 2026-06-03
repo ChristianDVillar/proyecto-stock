@@ -104,6 +104,9 @@ def create_solicitud():
             except (TypeError, ValueError):
                 return jsonify({'error': 'duration_value debe ser un número'}), 400
         signed = bool(data.get('signed', False))
+        signature_data = data.get('signature_data') or data.get('signature')
+        if signature_data:
+            signed = True
         stock_id = data.get('stock_id')
         if stock_id is not None:
             try:
@@ -115,6 +118,7 @@ def create_solicitud():
 
         r = ItemRequest(
             user_id=user.id,
+            tenant_id=user.tenant_id,
             request_username=user.username,
             stock_id=stock_id,
             request_date=req_date,
@@ -122,6 +126,7 @@ def create_solicitud():
             duration_value=duration_value,
             signed=signed,
             signed_at=datetime.utcnow() if signed else None,
+            signature_data=signature_data,
         )
         db.session.add(r)
         db.session.commit()
@@ -137,6 +142,29 @@ def create_solicitud():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': 'Error al crear la solicitud', 'message': str(e)}), 500
+
+
+@solicitudes.route('/<int:req_id>/sign', methods=['POST'])
+@jwt_required()
+def sign_solicitud(req_id):
+    """Firma digital del solicitante (canvas base64)."""
+    user, err = _current_user_or_401()
+    if err:
+        return jsonify({'error': 'No autorizado'}), err
+    r = ItemRequest.query.get(req_id)
+    if not r:
+        return jsonify({'error': 'Solicitud no encontrada'}), 404
+    if r.user_id != user.id and user.user_type.value != 'admin':
+        return jsonify({'error': 'No autorizado'}), 403
+    data = request.get_json() or {}
+    sig = data.get('signature_data') or data.get('signature')
+    if not sig:
+        return jsonify({'error': 'signature_data es obligatorio'}), 400
+    r.signature_data = sig
+    r.signed = True
+    r.signed_at = datetime.utcnow()
+    db.session.commit()
+    return jsonify(_serialize_solicitud(r)), 200
 
 
 @solicitudes.route('/<int:req_id>', methods=['PATCH'])

@@ -5,6 +5,7 @@ from flask_jwt_extended import (
     get_jwt, verify_jwt_in_request
 )
 from werkzeug.security import generate_password_hash, check_password_hash
+from .tenant_utils import assign_user_tenant, ensure_default_tenant
 from .models import db, User, UserTypeEnum
 from .utils import validate_username, validate_password, validate_request_data, error_handler
 import datetime
@@ -114,9 +115,14 @@ def login():
             _log_failed_login(username, 'user_inactive', ip)
             return jsonify({'error': 'Usuario inactivo'}), 401
 
+        if not user.tenant_id:
+            assign_user_tenant(user)
+            db.session.commit()
+
         additional_claims = {
             'username': user.username,
             'user_type': user.user_type.value,
+            'tenant_id': user.tenant_id,
             'created_at': datetime.datetime.utcnow().isoformat()
         }
         access_token = create_access_token(
@@ -131,7 +137,8 @@ def login():
             'user': {
                 'id': user.id,
                 'username': user.username,
-                'user_type': user_type
+                'user_type': user_type,
+                'tenant_id': user.tenant_id,
             }
         }
 
@@ -157,6 +164,7 @@ def refresh():
         additional_claims = {
             'username': user.username,
             'user_type': user.user_type.value,
+            'tenant_id': user.tenant_id,
             'created_at': datetime.datetime.utcnow().isoformat()
         }
         access_token = create_access_token(
@@ -194,6 +202,7 @@ def get_current_user():
         response_data = {
             'username': user.username,
             'user_type': user.user_type.value,
+            'tenant_id': user.tenant_id,
             'is_active': user.is_active,
             'token_info': {
                 'exp': jwt_data.get('exp'),

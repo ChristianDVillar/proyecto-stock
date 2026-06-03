@@ -11,6 +11,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from app import create_app
 from app.models import db, User, UserTypeEnum
+from api.tenant_utils import ensure_default_tenant
 from werkzeug.security import generate_password_hash
 
 def init_database():
@@ -28,6 +29,11 @@ def init_database():
             admin_username = os.environ.get('ADMIN_USERNAME', 'admin')
             admin_password = os.environ.get('ADMIN_PASSWORD', 'admin123')
             
+            # Tenant y almacén por defecto
+            tenant, warehouse = ensure_default_tenant()
+            print(f"✓ Default tenant: {tenant.name} (id={tenant.id})")
+            print(f"✓ Default warehouse: {warehouse.name}")
+
             admin_user = User.query.filter_by(username=admin_username).first()
             if not admin_user:
                 print("Creating default admin user...")
@@ -35,7 +41,8 @@ def init_database():
                     username=admin_username,
                     password=generate_password_hash(admin_password),
                     user_type=UserTypeEnum.admin,
-                    is_active=True
+                    is_active=True,
+                    tenant_id=tenant.id,
                 )
                 db.session.add(admin_user)
                 db.session.commit()
@@ -47,6 +54,9 @@ def init_database():
                     print("  Password: [HIDDEN] (set via ADMIN_PASSWORD env var)")
             else:
                 print("✓ Admin user already exists")
+                if not admin_user.tenant_id:
+                    admin_user.tenant_id = tenant.id
+                    db.session.commit()
             
             print("\nDatabase initialization completed successfully!")
             return 0

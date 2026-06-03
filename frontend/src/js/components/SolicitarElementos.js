@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import '../../styles/SolicitarElementos.css';
 import authStore from '../../stores/AuthStore';
+import SignaturePad from './SignaturePad';
 
 const SolicitarElementos = () => {
     const [formData, setFormData] = useState({
@@ -16,6 +17,7 @@ const SolicitarElementos = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState(null); // id de solicitud en proceso
+    const [signatureData, setSignatureData] = useState(null);
 
     const userName = authStore.getUserName();
     const isAdmin = authStore.isAdmin();
@@ -68,15 +70,16 @@ const SolicitarElementos = () => {
             setError('Debe iniciar sesión.');
             return;
         }
-        if (!formData.signed) {
-            setError('Debe firmar la solicitud (marcar la casilla).');
+        if (!formData.signed && !signatureData) {
+            setError('Debe firmar la solicitud (casilla o firma digital).');
             return;
         }
         const payload = {
             request_date: formData.request_date,
             duration_type: formData.duration_type,
-            signed: true
+            signed: true,
         };
+        if (signatureData) payload.signature_data = signatureData;
         if (formData.stock_id) {
             const sid = parseInt(formData.stock_id, 10);
             if (!isNaN(sid)) payload.stock_id = sid;
@@ -113,6 +116,7 @@ const SolicitarElementos = () => {
                 signed: false,
                 stock_id: ''
             }));
+            setSignatureData(null);
             fetchSolicitudes();
         } catch (err) {
             setError('Error de conexión.');
@@ -220,6 +224,11 @@ const SolicitarElementos = () => {
                         />
                     </div>
                 )}
+                <div className="form-group">
+                    <label>Firma digital (opcional)</label>
+                    <SignaturePad onSave={(data) => { setSignatureData(data); setFormData(p => ({ ...p, signed: true })); }} disabled={loading} />
+                    {signatureData && <p className="success-message">Firma capturada</p>}
+                </div>
                 <div className="form-group form-group-checkbox">
                     <label>
                         <input

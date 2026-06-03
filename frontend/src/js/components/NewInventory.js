@@ -16,11 +16,27 @@ const NewInventory = () => {
         dispositivo: '',
         modelo: '',
         descripcion: '',
-        cantidad: ''
+        cantidad: '',
+        expiration_date: '',
+        batch_number: '',
+        minimum_stock: '',
+        optimal_stock: '',
+        unit_cost: '',
+        serial_number: '',
+        mac_address: '',
+        hostname: '',
+        warranty_expiry: '',
+        contains_gluten: false,
+        contains_milk: false,
+        contains_nuts: false,
+        contains_soy: false,
+        supplier_id: '',
     });
+    const [showAdvanced, setShowAdvanced] = useState(false);
+    const [suppliers, setSuppliers] = useState([]);
     const [rows, setRows] = useState([]);
     const [isEditing, setIsEditing] = useState(false);
-    const [editRowId, setEditRowId] = useState(null);
+    const [, setEditRowId] = useState(null);
 
     const BARCODE_READERS = [
         "ean_reader", "ean_8_reader", "code_128_reader", "code_39_reader",
@@ -28,16 +44,29 @@ const NewInventory = () => {
     ];
 
     useEffect(() => {
+        if (!showAdvanced) return;
+        const token = authStore.getToken();
+        if (!token) return;
+        fetch('/api/suppliers', {
+            headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+        })
+            .then((r) => (r.ok ? r.json() : { suppliers: [] }))
+            .then((d) => setSuppliers(d.suppliers || []))
+            .catch(() => setSuppliers([]));
+    }, [showAdvanced]);
+
+    useEffect(() => {
+        const video = videoRef.current;
         return () => {
             try {
                 Quagga.stop();
             } catch (err) {
                 console.error("Error stopping Quagga:", err);
             }
-            if (videoRef.current && videoRef.current.srcObject) {
-                const tracks = videoRef.current.srcObject.getTracks();
+            if (video && video.srcObject) {
+                const tracks = video.srcObject.getTracks();
                 tracks.forEach(track => track.stop());
-                videoRef.current.srcObject = null;
+                video.srcObject = null;
             }
         };
     }, []);
@@ -327,7 +356,21 @@ const NewInventory = () => {
                 descripcion: descripcion || '',
                 cantidad,
                 purchase_date: new Date().toISOString().split('T')[0],
-                location: 'default'
+                location: 'default',
+                expiration_date: formData.expiration_date || undefined,
+                batch_number: formData.batch_number || undefined,
+                minimum_stock: formData.minimum_stock ? parseInt(formData.minimum_stock, 10) : undefined,
+                optimal_stock: formData.optimal_stock ? parseInt(formData.optimal_stock, 10) : undefined,
+                unit_cost: formData.unit_cost ? parseFloat(formData.unit_cost) : undefined,
+                serial_number: formData.serial_number || undefined,
+                mac_address: formData.mac_address || undefined,
+                hostname: formData.hostname || undefined,
+                warranty_expiry: formData.warranty_expiry || undefined,
+                contains_gluten: formData.contains_gluten,
+                contains_milk: formData.contains_milk,
+                contains_nuts: formData.contains_nuts,
+                contains_soy: formData.contains_soy,
+                supplier_id: formData.supplier_id ? parseInt(formData.supplier_id, 10) : undefined,
             };
 
             console.log('Enviando datos al servidor:', requestData);
@@ -383,7 +426,21 @@ const NewInventory = () => {
                 dispositivo: '',
                 modelo: '',
                 descripcion: '',
-                cantidad: ''
+                cantidad: '',
+                expiration_date: '',
+                batch_number: '',
+                minimum_stock: '',
+                optimal_stock: '',
+                unit_cost: '',
+                serial_number: '',
+                mac_address: '',
+                hostname: '',
+                warranty_expiry: '',
+                contains_gluten: false,
+                contains_milk: false,
+                contains_nuts: false,
+                contains_soy: false,
+                supplier_id: '',
             });
             setImageSrc('');
             alert('Stock guardado exitosamente');
@@ -511,6 +568,67 @@ const NewInventory = () => {
                         />
                     </div>
                 </div>
+
+                <button type="button" className="toggle-advanced" onClick={() => setShowAdvanced(!showAdvanced)}>
+                    {showAdvanced ? '▲ Ocultar campos avanzados' : '▼ Vencimientos, stock mínimo, activos IT, alérgenos'}
+                </button>
+
+                {showAdvanced && (
+                    <div className="form-grid advanced-fields">
+                        <div className="form-group">
+                            <label htmlFor="supplier_id">Proveedor</label>
+                            <select id="supplier_id" value={formData.supplier_id} onChange={handleInputChange} className="form-control">
+                                <option value="">Sin proveedor</option>
+                                {suppliers.map((s) => (
+                                    <option key={s.id} value={s.id}>{s.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="expiration_date">Fecha vencimiento</label>
+                            <input type="date" id="expiration_date" value={formData.expiration_date} onChange={handleInputChange} className="form-control" />
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="batch_number">Nº lote</label>
+                            <input type="text" id="batch_number" value={formData.batch_number} onChange={handleInputChange} className="form-control" />
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="minimum_stock">Stock mínimo</label>
+                            <input type="number" id="minimum_stock" value={formData.minimum_stock} onChange={handleInputChange} className="form-control" min="0" />
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="optimal_stock">Stock óptimo</label>
+                            <input type="number" id="optimal_stock" value={formData.optimal_stock} onChange={handleInputChange} className="form-control" min="0" />
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="unit_cost">Coste unitario (€)</label>
+                            <input type="number" step="0.01" id="unit_cost" value={formData.unit_cost} onChange={handleInputChange} className="form-control" />
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="serial_number">Nº serie</label>
+                            <input type="text" id="serial_number" value={formData.serial_number} onChange={handleInputChange} className="form-control" />
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="mac_address">MAC</label>
+                            <input type="text" id="mac_address" value={formData.mac_address} onChange={handleInputChange} className="form-control" />
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="hostname">Hostname</label>
+                            <input type="text" id="hostname" value={formData.hostname} onChange={handleInputChange} className="form-control" />
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="warranty_expiry">Fin garantía</label>
+                            <input type="date" id="warranty_expiry" value={formData.warranty_expiry} onChange={handleInputChange} className="form-control" />
+                        </div>
+                        <div className="form-group allergens">
+                            <label>Alérgenos</label>
+                            <label><input type="checkbox" checked={formData.contains_gluten} onChange={(e) => setFormData(p => ({ ...p, contains_gluten: e.target.checked }))} /> Gluten</label>
+                            <label><input type="checkbox" checked={formData.contains_milk} onChange={(e) => setFormData(p => ({ ...p, contains_milk: e.target.checked }))} /> Lácteos</label>
+                            <label><input type="checkbox" checked={formData.contains_nuts} onChange={(e) => setFormData(p => ({ ...p, contains_nuts: e.target.checked }))} /> Frutos secos</label>
+                            <label><input type="checkbox" checked={formData.contains_soy} onChange={(e) => setFormData(p => ({ ...p, contains_soy: e.target.checked }))} /> Soja</label>
+                        </div>
+                    </div>
+                )}
 
                 <button 
                     className="save-button" 

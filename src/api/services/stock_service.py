@@ -4,7 +4,8 @@ from datetime import datetime
 
 from ..models import (
     db, Stock, StockMovement, MaintenanceRecord, StockHistory,
-    StockStatusEnum, StockTypeEnum, CustomStockType, DeviceTypeEnum, CustomDeviceType
+    StockStatusEnum, StockTypeEnum, CustomStockType, DeviceTypeEnum, CustomDeviceType,
+    AssetEvent, AssetEventTypeEnum,
 )
 from ..repositories.stock_repository import StockRepository
 
@@ -52,24 +53,7 @@ class StockService:
         if not stock:
             return None
         payload = {
-            'stock': {
-                'id': stock.id,
-                'barcode': stock.barcode,
-                'inventario': stock.inventario,
-                'dispositivo': _enum_value(stock.dispositivo),
-                'modelo': stock.modelo,
-                'descripcion': stock.descripcion,
-                'cantidad': stock.cantidad,
-                'stocktype': stock.stocktype.value,
-                'status': stock.status.value,
-                'location': stock.location,
-                'serial_number': stock.serial_number,
-                'purchase_date': stock.purchase_date.isoformat() if stock.purchase_date else None,
-                'warranty_expiry': stock.warranty_expiry.isoformat() if stock.warranty_expiry else None,
-                'last_maintenance': stock.last_maintenance.isoformat() if stock.last_maintenance else None,
-                'next_maintenance': stock.next_maintenance.isoformat() if stock.next_maintenance else None,
-                'image_url': stock.image_url,
-            },
+            'stock': stock.to_summary_dict(),
             'movements': [{
                 'type': m.movement_type,
                 'quantity': m.quantity,
@@ -98,6 +82,12 @@ class StockService:
             validate_barcode, validate_inventario, validate_modelo, validate_cantidad,
             validate_descripcion, validate_request_data
         )
+        from ..tenant_utils import get_current_user, assign_user_tenant
+        from ..models import Warehouse
+        creator = get_current_user()
+        tenant_id = creator.tenant_id if creator else None
+        if creator and not tenant_id:
+            tenant_id = assign_user_tenant(creator)
         # Normalizar entradas: strings como str y trim
         def _str(v, default=''):
             if v is None:
@@ -125,7 +115,7 @@ class StockService:
         if not descripcion_valid:
             return None, {'error': 'Descripción inválida', 'message': descripcion_error, 'status': 400}
 
-        if StockRepository.exists_barcode(barcode):
+        if StockRepository.exists_barcode(barcode, tenant_id=tenant_id):
             return None, {'error': 'Código de barras duplicado', 'message': 'El código de barras ya existe.', 'status': 400}
 
         device_type = _str(data.get('dispositivo')).lower()
@@ -168,9 +158,53 @@ class StockService:
             except ValueError:
                 pass
 
+        def _parse_date(key):
+            v = data.get(key)
+            if not v:
+                return None
+            try:
+                return datetime.strptime(v, '%Y-%m-%d').date()
+            except ValueError:
+                return None
+
+        def _bool(key):
+            return bool(data.get(key))
+
+        def _int_opt(key):
+            v = data.get(key)
+            if v in (None, ''):
+                return None
+            try:
+                return int(v)
+            except (TypeError, ValueError):
+                return None
+
+        def _float_opt(key):
+            v = data.get(key)
+            if v in (None, ''):
+                return None
+            try:
+                return float(v)
+            except (TypeError, ValueError):
+                return None
+
+        expiration_date = _parse_date('expiration_date')
+        batch_number = _str(data.get('batch_number')) or None
+        supplier_id = data.get('supplier_id')
+        if supplier_id:
+            try:
+                supplier_id = int(supplier_id)
+            except (TypeError, ValueError):
+                supplier_id = None
+
         try:
-            # Alta de stock, movimiento inicial y auditoría (misma transacción del request)
+            default_wh = None
+            if tenant_id:
+                default_wh = Warehouse.query.filter_by(tenant_id=tenant_id, is_default=True).first()
+
             new_stock = Stock(
+                tenant_id=tenant_id,
+                warehouse_id=default_wh.id if default_wh else None,
                 barcode=barcode,
                 inventario=inventario,
                 dispositivo=device_type_enum,
@@ -183,6 +217,19 @@ class StockService:
                 serial_number=_str(data.get('serial_number')) or None,
                 purchase_date=purchase_date,
                 warranty_expiry=warranty_expiry,
+                expiration_date=expiration_date,
+                batch_number=batch_number,
+                supplier_id=supplier_id,
+                minimum_stock=_int_opt('minimum_stock') or 0,
+                optimal_stock=_int_opt('optimal_stock'),
+                unit_cost=_float_opt('unit_cost'),
+                contains_gluten=_bool('contains_gluten'),
+                contains_milk=_bool('contains_milk'),
+                contains_nuts=_bool('contains_nuts'),
+                contains_soy=_bool('contains_soy'),
+                mac_address=_str(data.get('mac_address')) or None,
+                hostname=_str(data.get('hostname')) or None,
+                assigned_user_id=_int_opt('assigned_user_id'),
                 created_by=created_by_id
             )
             StockRepository.add(new_stock)
@@ -198,6 +245,14 @@ class StockService:
             StockRepository.add_movement(movement)
 
             record_stock_history(new_stock.id, created_by_id, 'create', old_value=None, new_value=_stock_to_snapshot(new_stock))
+
+            evt = AssetEvent(
+                stock_id=new_stock.id,
+                user_id=created_by_id,
+                event_type=AssetEventTypeEnum.comprado,
+                description='Alta inicial de inventario',
+            )
+            db.session.add(evt)
 
             return new_stock, None
         except Exception as e:
@@ -232,11 +287,7 @@ class StockService:
             page=page, per_page=per_page
         )
         return {
-            'stocks': [{
-                'id': s.id, 'barcode': s.barcode, 'inventario': s.inventario,
-                'dispositivo': _enum_value(s.dispositivo), 'modelo': s.modelo,
-                'cantidad': s.cantidad, 'status': _enum_value(s.status), 'location': s.location
-            } for s in items],
+            'stocks': [s.to_summary_dict() for s in items],
             'total_items': total_items,
             'total_pages': total_pages,
             'current_page': page,

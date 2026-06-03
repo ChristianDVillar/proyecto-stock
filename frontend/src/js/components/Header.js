@@ -35,11 +35,26 @@ const Header = ({ isAdmin }) => {
             <nav className="nav">
                 {isAdmin && (
                     <>
+                        <NavLink to="/dashboard" className={({ isActive }) => 'nav-button' + (isActive ? ' active' : '')}>
+                            Dashboard
+                        </NavLink>
                         <NavLink to="/" className={({ isActive }) => 'nav-button' + (isActive ? ' active' : '')}>
                             Nuevo Inventario
                         </NavLink>
                         <NavLink to="/consultar" className={({ isActive }) => 'nav-button' + (isActive ? ' active' : '')}>
                             Consultar Inventario
+                        </NavLink>
+                        <NavLink to="/proveedores" className={({ isActive }) => 'nav-button' + (isActive ? ' active' : '')}>
+                            Proveedores
+                        </NavLink>
+                        <NavLink to="/ordenes-compra" className={({ isActive }) => 'nav-button' + (isActive ? ' active' : '')}>
+                            Órdenes de compra
+                        </NavLink>
+                        <NavLink to="/almacenes" className={({ isActive }) => 'nav-button' + (isActive ? ' active' : '')}>
+                            Almacenes
+                        </NavLink>
+                        <NavLink to="/transferencias" className={({ isActive }) => 'nav-button' + (isActive ? ' active' : '')}>
+                            Transferencias
                         </NavLink>
                     </>
                 )}

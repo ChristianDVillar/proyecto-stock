@@ -23,7 +23,9 @@ if config_file is not None:
     if Path(config_file).is_file():
         fileConfig(config_file)
 
-# Importar app y db
+# Importar app y db (sin Flask-Admin: run.py ya puede haberlo cargado)
+os.environ.setdefault('FLASK_SKIP_ADMIN', '1')
+
 from app import create_app
 from app.models import db
 

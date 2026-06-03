@@ -10,6 +10,7 @@ class AuthStore extends EventEmitter {
         this._token = null;
         this._userName = '';
         this._userType = '';
+        this._tenantId = null;
         this._isLoggedIn = false;
         
         // Inicializar inmediatamente desde localStorage
@@ -33,7 +34,7 @@ class AuthStore extends EventEmitter {
 
     handleStorageChange(event) {
         if (AUTH_DEBUG) console.log('Storage change detected:', event);
-        if (event.key === 'jwt_token' || event.key === 'username' || event.key === 'user_type') {
+        if (event.key === 'jwt_token' || event.key === 'username' || event.key === 'user_type' || event.key === 'tenant_id') {
             this.initializeFromStorage();
         }
     }
@@ -44,8 +45,9 @@ class AuthStore extends EventEmitter {
             const token = localStorage.getItem('jwt_token');
             const username = localStorage.getItem('username');
             const userType = localStorage.getItem('user_type');
+            const tenantId = localStorage.getItem('tenant_id');
 
-            if (AUTH_DEBUG) console.log('Loading auth state from storage:', { hasToken: !!token, hasUsername: !!username, userType });
+            if (AUTH_DEBUG) console.log('Loading auth state from storage:', { hasToken: !!token, hasUsername: !!username, userType, tenantId });
 
             // Clear state if any required data is missing
             if (!token || !username || !userType) {
@@ -58,6 +60,7 @@ class AuthStore extends EventEmitter {
             this._token = token;
             this._userName = username;
             this._userType = userType;
+            this._tenantId = tenantId ? parseInt(tenantId, 10) : null;
             this._isLoggedIn = true;
             this._isInitialized = true;
 
@@ -132,6 +135,11 @@ class AuthStore extends EventEmitter {
                 localStorage.setItem('user_type', data.user_type);
                 this.emit('change');
             }
+            if (data.tenant_id !== undefined && data.tenant_id !== this._tenantId) {
+                this._tenantId = data.tenant_id;
+                localStorage.setItem('tenant_id', String(data.tenant_id));
+                this.emit('change');
+            }
 
             // Verificar y actualizar el token si se recibió uno nuevo
             const newToken = response.headers.get('Authorization')?.replace('Bearer ', '');
@@ -157,6 +165,7 @@ class AuthStore extends EventEmitter {
         this._token = null;
         this._userName = '';
         this._userType = '';
+        this._tenantId = null;
         this._isLoggedIn = false;
         
         // Clear storage
@@ -164,6 +173,7 @@ class AuthStore extends EventEmitter {
             localStorage.removeItem('jwt_token');
             localStorage.removeItem('username');
             localStorage.removeItem('user_type');
+            localStorage.removeItem('tenant_id');
         } catch (error) {
             console.error('Error clearing localStorage:', error);
         }
@@ -194,15 +204,20 @@ class AuthStore extends EventEmitter {
         return this._userType;
     }
 
+    getTenantId() {
+        return this._tenantId;
+    }
+
     getToken() {
         return this._token;
     }
 
-    login(token, username, userType) {
+    login(token, username, userType, tenantId = null) {
         console.log('Login attempt:', {
             hasToken: !!token,
             username,
-            userType
+            userType,
+            tenantId,
         });
 
         if (!token || !username || !userType) {
@@ -221,11 +236,15 @@ class AuthStore extends EventEmitter {
             localStorage.setItem('jwt_token', cleanToken);
             localStorage.setItem('username', username);
             localStorage.setItem('user_type', userType);
+            if (tenantId != null) {
+                localStorage.setItem('tenant_id', String(tenantId));
+            }
             
             // Verify storage was updated
             const storedToken = localStorage.getItem('jwt_token');
             const storedUsername = localStorage.getItem('username');
             const storedUserType = localStorage.getItem('user_type');
+            const storedTenantId = localStorage.getItem('tenant_id');
             
             if (!storedToken || !storedUsername || !storedUserType) {
                 throw new Error('Failed to store authentication data');
@@ -239,6 +258,7 @@ class AuthStore extends EventEmitter {
             this._token = cleanToken;
             this._userName = username;
             this._userType = userType;
+            this._tenantId = tenantId != null ? parseInt(tenantId, 10) : (storedTenantId ? parseInt(storedTenantId, 10) : null);
             this._isLoggedIn = true;
             this._isInitialized = true;
             

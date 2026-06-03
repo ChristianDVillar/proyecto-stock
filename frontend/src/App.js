@@ -6,6 +6,11 @@ import NewInventory from './js/components/NewInventory';
 import ConsultInventory from './js/components/ConsultInventory';
 import SolicitarElementos from './js/components/SolicitarElementos';
 import UserDashboard from './js/components/UserDashboard';
+import Dashboard from './js/components/Dashboard';
+import Suppliers from './js/components/Suppliers';
+import PurchaseOrders from './js/components/PurchaseOrders';
+import Warehouses from './js/components/Warehouses';
+import Transfers from './js/components/Transfers';
 import Login from './js/components/Login';
 import Footer from './js/components/Footer';
 import ProtectedRoute from './js/components/ProtectedRoute';
@@ -92,6 +97,46 @@ function App() {
               element={
                 <ProtectedRoute>
                   <SolicitarElementos />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute adminOnly>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/proveedores"
+              element={
+                <ProtectedRoute adminOnly>
+                  <Suppliers />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/ordenes-compra"
+              element={
+                <ProtectedRoute adminOnly>
+                  <PurchaseOrders />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/almacenes"
+              element={
+                <ProtectedRoute adminOnly>
+                  <Warehouses />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/transferencias"
+              element={
+                <ProtectedRoute adminOnly>
+                  <Transfers />
                 </ProtectedRoute>
               }
             />

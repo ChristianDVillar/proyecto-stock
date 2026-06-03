@@ -1,10 +1,10 @@
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from .models import db, Stock, StockMovement, MaintenanceRecord, StockStatusEnum, StockTypeEnum, CustomStockType, DeviceTypeEnum, CustomDeviceType
+from .models import db, Stock, StockMovement, MaintenanceRecord, StockStatusEnum, StockTypeEnum, CustomStockType, DeviceTypeEnum, CustomDeviceType, AssetEvent, AssetEventTypeEnum
 from .repositories.stock_repository import StockRepository
 from .utils import (
     validate_barcode, validate_inventario, validate_modelo, validate_cantidad,
-    validate_request_data, error_handler
+    validate_request_data, error_handler, role_required
 )
 from .services.stock_service import StockService
 from datetime import datetime
@@ -181,6 +181,77 @@ def search_stock_elasticsearch():
         })
 
     return jsonify({"query": q, "total": total, "results": results}), 200
+
+
+@api.route('/stock/<int:stock_id>', methods=['PATCH'])
+@jwt_required()
+@role_required('admin')
+def update_stock(stock_id):
+    """Actualiza campos comerciales / activo IT del stock."""
+    try:
+        stock = StockRepository.get_by_id(stock_id, include_deleted=False)
+        if not stock:
+            return jsonify({'error': 'Stock no encontrado'}), 404
+        data = request.get_json() or {}
+        updatable = (
+            'minimum_stock', 'optimal_stock', 'unit_cost', 'supplier_id',
+            'expiration_date', 'batch_number', 'serial_number', 'mac_address',
+            'hostname', 'assigned_user_id', 'location', 'descripcion',
+            'contains_gluten', 'contains_milk', 'contains_nuts', 'contains_soy',
+            'warranty_expiry', 'purchase_date',
+        )
+        for key in updatable:
+            if key not in data:
+                continue
+            val = data[key]
+            if key in ('expiration_date', 'warranty_expiry', 'purchase_date') and val:
+                try:
+                    val = datetime.strptime(val, '%Y-%m-%d').date()
+                except ValueError:
+                    continue
+            if key in ('minimum_stock', 'optimal_stock', 'supplier_id', 'assigned_user_id') and val is not None:
+                try:
+                    val = int(val)
+                except (TypeError, ValueError):
+                    continue
+            if key == 'unit_cost' and val is not None:
+                try:
+                    val = float(val)
+                except (TypeError, ValueError):
+                    continue
+            setattr(stock, key, val)
+        if 'assigned_user_id' in data and data['assigned_user_id']:
+            evt = AssetEvent(
+                stock_id=stock.id,
+                user_id=int(get_jwt_identity()),
+                event_type=AssetEventTypeEnum.asignado,
+                description=f'Asignado a usuario ID {data["assigned_user_id"]}',
+            )
+            db.session.add(evt)
+        db.session.commit()
+        return jsonify(stock.to_summary_dict()), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@api.route('/stock/<int:stock_id>/asset-history', methods=['GET'])
+@jwt_required()
+@role_required('admin')
+def asset_history(stock_id):
+    stock = StockRepository.get_by_id(stock_id, include_deleted=False)
+    if not stock:
+        return jsonify({'error': 'Stock no encontrado'}), 404
+    events = AssetEvent.query.filter_by(stock_id=stock_id).order_by(AssetEvent.created_at.desc()).all()
+    movements = StockMovement.query.filter_by(stock_id=stock_id).order_by(StockMovement.timestamp.desc()).limit(50).all()
+    maintenance = MaintenanceRecord.query.filter_by(stock_id=stock_id).order_by(MaintenanceRecord.date_performed.desc()).limit(20).all()
+    return jsonify({
+        'stock': stock.to_summary_dict(),
+        'asset_events': [e.to_dict() for e in events],
+        'movements': [{'type': m.movement_type, 'quantity': m.quantity, 'timestamp': m.timestamp.isoformat(), 'notes': m.notes} for m in movements],
+        'maintenance': [{'type': m.maintenance_type, 'date': m.date_performed.isoformat(), 'status': m.status} for m in maintenance],
+    }), 200
+
 
 @api.route('/stock/<int:stock_id>', methods=['DELETE'])
 @jwt_required()
