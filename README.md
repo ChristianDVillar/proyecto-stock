@@ -155,7 +155,7 @@ curl -X POST http://localhost:3000/api/stock \
   }'
 ```
 
-Ver [docs/API.md](docs/API.md) para más ejemplos.
+Ver [FUNCIONAMIENTO.md](FUNCIONAMIENTO.md) para más detalles del sistema y flujos.
 
 ## Objetivo del proyecto
 
@@ -170,14 +170,10 @@ No es un tutorial ni un boilerplate, sino un proyecto trabajado y mejorado de fo
 
 ## Documentación
 
-- [API Documentation](docs/API.md)
-- [Deployment Guide](docs/DEPLOYMENT.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Security Guide](SECURITY.md)
-- [Implementation Summary](IMPLEMENTATION_SUMMARY.md)
 - [Funcionamiento del sistema](FUNCIONAMIENTO.md)
-- [Revisión para producción](docs/REVISION_PRODUCCION.md) — hoja de ruta de mejoras priorizadas
-- [Checklist de despliegue](docs/DEPLOYMENT_CHECKLIST.md) — variables de entorno, migraciones, primer arranque
+- [Decisiones técnicas](TECH_DECISIONS.md)
+- [Guía de seguridad](SECURITY.md)
+- [Resumen de implementación](IMPLEMENTATION_SUMMARY.md)
 
 ## Autor
 
@@ -191,5 +187,5 @@ MIT License - Ver [LICENSE](LICENSE) para más detalles.
 ---
 
 **Versión:** 1.0.0  
-**Última actualización:** 2025
+**Última actualización:** 2026
 

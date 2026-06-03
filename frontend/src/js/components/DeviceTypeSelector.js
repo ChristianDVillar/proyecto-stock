@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 const DeviceTypeSelector = ({ value, onChange, id = 'dispositivo' }) => {
     const [types, setTypes] = useState([]);
@@ -12,7 +12,7 @@ const DeviceTypeSelector = ({ value, onChange, id = 'dispositivo' }) => {
         window.location.href = '/login';
     };
 
-    const fetchStockTypes = async () => {
+    const fetchStockTypes = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
@@ -60,11 +60,11 @@ const DeviceTypeSelector = ({ value, onChange, id = 'dispositivo' }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         fetchStockTypes();
-    }, []);
+    }, [fetchStockTypes]);
 
     const handleTypeChange = (e) => {
         const selectedValue = e.target.value;

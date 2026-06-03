@@ -2,6 +2,7 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from .models import db, User, UserTypeEnum, ItemRequest, Stock
+from .utils import role_required
 
 solicitudes = Blueprint('solicitudes', __name__)
 

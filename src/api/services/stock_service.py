@@ -169,36 +169,35 @@ class StockService:
                 pass
 
         try:
-            # Transacción única: alta de stock, movimiento inicial y auditoría
-            with db.session.begin():
-                new_stock = Stock(
-                    barcode=barcode,
-                    inventario=inventario,
-                    dispositivo=device_type_enum,
-                    modelo=modelo,
-                    descripcion=descripcion or None,
-                    cantidad=cantidad,
-                    stocktype=device_type_enum,
-                    status=StockStatusEnum.disponible,
-                    location=_str(data.get('location')) or 'default',
-                    serial_number=_str(data.get('serial_number')) or None,
-                    purchase_date=purchase_date,
-                    warranty_expiry=warranty_expiry,
-                    created_by=created_by_id
-                )
-                StockRepository.add(new_stock)
+            # Alta de stock, movimiento inicial y auditoría (misma transacción del request)
+            new_stock = Stock(
+                barcode=barcode,
+                inventario=inventario,
+                dispositivo=device_type_enum,
+                modelo=modelo,
+                descripcion=descripcion or None,
+                cantidad=cantidad,
+                stocktype=device_type_enum,
+                status=StockStatusEnum.disponible,
+                location=_str(data.get('location')) or 'default',
+                serial_number=_str(data.get('serial_number')) or None,
+                purchase_date=purchase_date,
+                warranty_expiry=warranty_expiry,
+                created_by=created_by_id
+            )
+            StockRepository.add(new_stock)
 
-                movement = StockMovement(
-                    user_id=created_by_id,
-                    quantity=cantidad,
-                    movement_type='entrada',
-                    to_location=_str(data.get('location')) or 'default',
-                    notes='Registro inicial de inventario'
-                )
-                movement.stock_id = new_stock.id
-                StockRepository.add_movement(movement)
+            movement = StockMovement(
+                user_id=created_by_id,
+                quantity=cantidad,
+                movement_type='entrada',
+                to_location=_str(data.get('location')) or 'default',
+                notes='Registro inicial de inventario'
+            )
+            movement.stock_id = new_stock.id
+            StockRepository.add_movement(movement)
 
-                record_stock_history(new_stock.id, created_by_id, 'create', old_value=None, new_value=_stock_to_snapshot(new_stock))
+            record_stock_history(new_stock.id, created_by_id, 'create', old_value=None, new_value=_stock_to_snapshot(new_stock))
 
             return new_stock, None
         except Exception as e:
@@ -255,10 +254,8 @@ class StockService:
             return None, {'error': 'Stock no encontrado', 'status': 404}
         old_snapshot = _stock_to_snapshot(stock)
         try:
-            # Transacción única: marcar deleted_at y registrar historial
-            with db.session.begin():
-                StockRepository.soft_delete(stock_id)
-                record_stock_history(stock_id, user_id, 'soft_delete', old_value=old_snapshot, new_value=None)
+            StockRepository.soft_delete(stock_id)
+            record_stock_history(stock_id, user_id, 'soft_delete', old_value=old_snapshot, new_value=None)
             return stock, None
         except Exception as e:
             return None, {'error': 'Error al eliminar', 'message': str(e), 'status': 500}

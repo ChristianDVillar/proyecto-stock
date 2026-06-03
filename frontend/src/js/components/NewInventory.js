@@ -29,11 +29,18 @@ const NewInventory = () => {
 
     useEffect(() => {
         return () => {
-            if (isScanning) {
-                stopScanning();
+            try {
+                Quagga.stop();
+            } catch (err) {
+                console.error("Error stopping Quagga:", err);
+            }
+            if (videoRef.current && videoRef.current.srcObject) {
+                const tracks = videoRef.current.srcObject.getTracks();
+                tracks.forEach(track => track.stop());
+                videoRef.current.srcObject = null;
             }
         };
-    }, [isScanning]);
+    }, []);
 
     const startScanning = async () => {
         try {
@@ -268,38 +275,6 @@ const NewInventory = () => {
             ...prevState,
             dispositivo: value
         }));
-    };
-
-    const handleSave = () => {
-        const currentTime = new Date();
-        const newRow = {
-            id: isEditing ? editRowId : currentTime.getTime(),
-            barcode: scannedBarcode || "S/N",
-            inventario: formData.inventario || "S/N",
-            dispositivo: formData.dispositivo || "S/N",
-            modelo: formData.modelo || "S/N",
-            descripcion: formData.descripcion || "S/N",
-            cantidad: formData.cantidad || "S/N",
-            dateAdded: `${currentTime.toLocaleDateString()} ${currentTime.toLocaleTimeString()}`
-        };
-
-        if (isEditing) {
-            setRows(prevRows => prevRows.map(row => row.id === editRowId ? newRow : row));
-            setIsEditing(false);
-            setEditRowId(null);
-        } else {
-            setRows(prevRows => [...prevRows, newRow]);
-        }
-
-        setScannedBarcode('');
-        setFormData({
-            inventario: '',
-            dispositivo: '',
-            modelo: '',
-            descripcion: '',
-            cantidad: ''
-        });
-        setImageSrc('');
     };
 
     const handleDelete = (id) => {

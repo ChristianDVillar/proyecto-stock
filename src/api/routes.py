@@ -79,6 +79,7 @@ def create_stock():
         new_stock, err = StockService.create_stock_item(user_id, data or {})
         if err:
             return jsonify({'error': err['error'], 'message': err.get('message', '')}), err.get('status', 500)
+        db.session.commit()
         response_data = {'message': 'Stock creado exitosamente', 'id': new_stock.id, 'barcode': new_stock.barcode}
         return jsonify(response_data), 201
     except Exception as e:
@@ -193,6 +194,7 @@ def delete_stock(stock_id):
         stock, err = StockService.soft_delete_stock(stock_id, user_id)
         if err:
             return jsonify({'error': err['error'], 'message': err.get('message', '')}), err.get('status', 500)
+        db.session.commit()
         return jsonify({'message': 'Stock eliminado (soft delete)'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
