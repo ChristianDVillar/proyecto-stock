@@ -144,6 +144,11 @@ class PurchaseOrderService:
         order.status = PurchaseOrderStatusEnum.aprobada
         order.approved_by = approver_id
         order.approved_at = datetime.utcnow()
+        from .alert_service import AlertService
+        from .webhook_service import WebhookService
+        if order.tenant_id:
+            AlertService.notify_order_approved(order.tenant_id, order.order_number)
+            WebhookService.emit(order.tenant_id, 'order.approved', order.to_dict())
         return order, None
 
     @staticmethod
@@ -163,6 +168,16 @@ class PurchaseOrderService:
                 stock = Stock.query.get(line.stock_id)
                 if stock and stock.deleted_at is None:
                     old_snap = _stock_to_snapshot(stock)
+                    old_qty = stock.cantidad or 0
+                    if line.unit_cost:
+                        new_qty = old_qty + qty
+                        old_avg = stock.average_cost or stock.purchase_price or stock.unit_cost or 0
+                        if new_qty > 0:
+                            stock.average_cost = round(
+                                ((old_avg * old_qty) + (line.unit_cost * qty)) / new_qty, 4
+                            )
+                        stock.purchase_price = line.unit_cost
+                        stock.unit_cost = line.unit_cost
                     movement = StockMovement(
                         stock_id=stock.id,
                         user_id=user_id,

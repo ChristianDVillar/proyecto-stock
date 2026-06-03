@@ -55,6 +55,18 @@ const Dashboard = () => {
                     <span className="kpi-label">Unidades totales</span>
                     <span className="kpi-value">{kpis.total_units}</span>
                 </div>
+                <div className="kpi-card">
+                    <span className="kpi-label">Beneficio potencial</span>
+                    <span className="kpi-value">€{(kpis.potential_profit || 0).toLocaleString()}</span>
+                </div>
+                <div className="kpi-card">
+                    <span className="kpi-label">Valor a venta</span>
+                    <span className="kpi-value">€{(kpis.inventory_at_sale_value || 0).toLocaleString()}</span>
+                </div>
+                <div className="kpi-card">
+                    <span className="kpi-label">Margen medio</span>
+                    <span className="kpi-value">{kpis.average_margin_percent != null ? `${kpis.average_margin_percent}%` : '—'}</span>
+                </div>
                 <div className="kpi-card kpi-warn">
                     <span className="kpi-label">Stock crítico</span>
                     <span className="kpi-value">{kpis.critical_stock_count}</span>

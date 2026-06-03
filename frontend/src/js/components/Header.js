@@ -56,7 +56,27 @@ const Header = ({ isAdmin }) => {
                         <NavLink to="/transferencias" className={({ isActive }) => 'nav-button' + (isActive ? ' active' : '')}>
                             Transferencias
                         </NavLink>
+                        <NavLink to="/escaneo" className={({ isActive }) => 'nav-button' + (isActive ? ' active' : '')}>
+                            Escaneo rápido
+                        </NavLink>
+                        <NavLink to="/inventario-ciclico" className={({ isActive }) => 'nav-button' + (isActive ? ' active' : '')}>
+                            Inv. cíclico
+                        </NavLink>
+                        <NavLink to="/alertas" className={({ isActive }) => 'nav-button' + (isActive ? ' active' : '')}>
+                            Alertas
+                        </NavLink>
+                        <NavLink to="/planes" className={({ isActive }) => 'nav-button' + (isActive ? ' active' : '')}>
+                            Planes
+                        </NavLink>
+                        <NavLink to="/integraciones" className={({ isActive }) => 'nav-button' + (isActive ? ' active' : '')}>
+                            API
+                        </NavLink>
                     </>
+                )}
+                {!isAdmin && (
+                    <NavLink to="/portal" className={({ isActive }) => 'nav-button' + (isActive ? ' active' : '')}>
+                        Mi portal
+                    </NavLink>
                 )}
                 <NavLink to="/solicitar" className={({ isActive }) => 'nav-button' + (isActive ? ' active' : '')}>
                     Solicitar elementos

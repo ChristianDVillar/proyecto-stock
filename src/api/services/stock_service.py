@@ -222,7 +222,13 @@ class StockService:
                 supplier_id=supplier_id,
                 minimum_stock=_int_opt('minimum_stock') or 0,
                 optimal_stock=_int_opt('optimal_stock'),
-                unit_cost=_float_opt('unit_cost'),
+                unit_cost=_float_opt('unit_cost') or _float_opt('purchase_price'),
+                purchase_price=_float_opt('purchase_price') or _float_opt('unit_cost'),
+                sale_price=_float_opt('sale_price'),
+                average_cost=_float_opt('average_cost') or _float_opt('purchase_price') or _float_opt('unit_cost'),
+                location_code=_str(data.get('location_code')) or None,
+                location_aisle=_str(data.get('location_aisle')) or None,
+                location_shelf=_str(data.get('location_shelf')) or None,
                 contains_gluten=_bool('contains_gluten'),
                 contains_milk=_bool('contains_milk'),
                 contains_nuts=_bool('contains_nuts'),
@@ -232,6 +238,14 @@ class StockService:
                 assigned_user_id=_int_opt('assigned_user_id'),
                 created_by=created_by_id
             )
+            loc = _str(data.get('location_code'))
+            if loc and not new_stock.location_aisle:
+                parts = loc.upper().split('-')
+                if len(parts) >= 2:
+                    new_stock.location_aisle = parts[0]
+                if len(parts) >= 3:
+                    new_stock.location_shelf = parts[1]
+            new_stock.ensure_public_token()
             StockRepository.add(new_stock)
 
             movement = StockMovement(
@@ -310,3 +324,25 @@ class StockService:
             return stock, None
         except Exception as e:
             return None, {'error': 'Error al eliminar', 'message': str(e), 'status': 500}
+
+    @staticmethod
+    def quick_scan(barcode, user_id, tenant_id, mode='lookup', quantity=1):
+        """Modo inventario rápido: lookup, increment o decrement."""
+        from ..tenant_utils import scope_tenant
+        q = scope_tenant(Stock.query.filter(Stock.deleted_at.is_(None)), Stock, tenant_id)
+        stock = q.filter_by(barcode=barcode).first()
+        if not stock:
+            return None, {'error': f'Producto {barcode} no encontrado', 'status': 404}
+        if mode in ('increment', 'add'):
+            movement = StockMovement(
+                stock_id=stock.id, user_id=user_id, quantity=quantity,
+                movement_type='entrada', notes='Inventario rápido (+)',
+            )
+            db.session.add(movement)
+        elif mode in ('decrement', 'remove'):
+            movement = StockMovement(
+                stock_id=stock.id, user_id=user_id, quantity=quantity,
+                movement_type='salida', notes='Inventario rápido (-)',
+            )
+            db.session.add(movement)
+        return stock, None

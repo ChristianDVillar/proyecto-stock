@@ -22,6 +22,9 @@ const NewInventory = () => {
         minimum_stock: '',
         optimal_stock: '',
         unit_cost: '',
+        purchase_price: '',
+        sale_price: '',
+        location_code: '',
         serial_number: '',
         mac_address: '',
         hostname: '',
@@ -362,6 +365,9 @@ const NewInventory = () => {
                 minimum_stock: formData.minimum_stock ? parseInt(formData.minimum_stock, 10) : undefined,
                 optimal_stock: formData.optimal_stock ? parseInt(formData.optimal_stock, 10) : undefined,
                 unit_cost: formData.unit_cost ? parseFloat(formData.unit_cost) : undefined,
+                purchase_price: formData.purchase_price ? parseFloat(formData.purchase_price) : (formData.unit_cost ? parseFloat(formData.unit_cost) : undefined),
+                sale_price: formData.sale_price ? parseFloat(formData.sale_price) : undefined,
+                location_code: formData.location_code || undefined,
                 serial_number: formData.serial_number || undefined,
                 mac_address: formData.mac_address || undefined,
                 hostname: formData.hostname || undefined,
@@ -599,6 +605,18 @@ const NewInventory = () => {
                         <div className="form-group">
                             <label htmlFor="optimal_stock">Stock óptimo</label>
                             <input type="number" id="optimal_stock" value={formData.optimal_stock} onChange={handleInputChange} className="form-control" min="0" />
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="location_code">Ubicación física (ej. A-03-02)</label>
+                            <input type="text" id="location_code" value={formData.location_code} onChange={handleInputChange} className="form-control" placeholder="Pasillo-Estante-Nivel" />
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="purchase_price">Precio compra (€)</label>
+                            <input type="number" step="0.01" id="purchase_price" value={formData.purchase_price} onChange={handleInputChange} className="form-control" />
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="sale_price">Precio venta (€)</label>
+                            <input type="number" step="0.01" id="sale_price" value={formData.sale_price} onChange={handleInputChange} className="form-control" />
                         </div>
                         <div className="form-group">
                             <label htmlFor="unit_cost">Coste unitario (€)</label>

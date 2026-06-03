@@ -105,6 +105,7 @@ class TenantPlanEnum(enum.Enum):
     starter = 'starter'
     pro = 'pro'
     business = 'business'
+    enterprise = 'enterprise'
 
 
 # Multi-tenant (SaaS)
@@ -127,6 +128,7 @@ class Tenant(db.Model):
             'slug': self.slug,
             'plan': self.plan.value if hasattr(self.plan, 'value') else str(self.plan),
             'is_active': self.is_active,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
         }
 
 
@@ -291,8 +293,21 @@ class Stock(db.Model):
     minimum_stock = db.Column(db.Integer, nullable=True, default=0)
     optimal_stock = db.Column(db.Integer, nullable=True)
     unit_cost = db.Column(db.Float, nullable=True)
+    purchase_price = db.Column(db.Float, nullable=True)
+    sale_price = db.Column(db.Float, nullable=True)
+    average_cost = db.Column(db.Float, nullable=True)
 
-    # Alérgenos (restauración / carta digital)
+    # Ubicación física (ej. A-03-02 = Pasillo A, Estante 3, Nivel 2)
+    location_code = db.Column(db.String(20), nullable=True, index=True)
+    location_aisle = db.Column(db.String(10), nullable=True)
+    location_shelf = db.Column(db.String(10), nullable=True)
+
+    # QR público / carta digital
+    public_token = db.Column(db.String(36), unique=True, nullable=True, index=True)
+    qr_public_enabled = db.Column(db.Boolean, default=False, nullable=False)
+    manual_pdf_url = db.Column(db.String(500), nullable=True)
+    menu_item_name = db.Column(db.String(120), nullable=True)
+    is_menu_ingredient = db.Column(db.Boolean, default=False, nullable=False)
     contains_gluten = db.Column(db.Boolean, default=False, nullable=False)
     contains_milk = db.Column(db.Boolean, default=False, nullable=False)
     contains_nuts = db.Column(db.Boolean, default=False, nullable=False)
@@ -360,6 +375,44 @@ class Stock(db.Model):
             return None
         return (self.warranty_expiry - datetime.utcnow().date()).days
 
+    def effective_purchase_price(self):
+        return self.purchase_price if self.purchase_price is not None else self.unit_cost
+
+    def margin_unit(self):
+        cost = self.effective_purchase_price()
+        if self.sale_price is not None and cost is not None:
+            return round(self.sale_price - cost, 2)
+        return None
+
+    def margin_percent(self):
+        cost = self.effective_purchase_price()
+        if self.sale_price and cost and cost > 0:
+            return round(((self.sale_price - cost) / cost) * 100, 1)
+        return None
+
+    def potential_profit(self):
+        m = self.margin_unit()
+        if m is not None:
+            return round(m * (self.cantidad or 0), 2)
+        return None
+
+    def ensure_public_token(self):
+        if not self.public_token:
+            self.public_token = str(uuid.uuid4())
+        return self.public_token
+
+    def allergen_labels(self):
+        labels = []
+        if self.contains_gluten:
+            labels.append('gluten')
+        if self.contains_milk:
+            labels.append('lácteos')
+        if self.contains_nuts:
+            labels.append('frutos secos')
+        if self.contains_soy:
+            labels.append('soja')
+        return labels
+
     def to_summary_dict(self):
         """Resumen para listados y dashboard."""
         supplier_name = self.supplier.name if self.supplier else None
@@ -374,6 +427,9 @@ class Stock(db.Model):
             'cantidad': self.cantidad,
             'status': self.status.value if hasattr(self.status, 'value') else str(self.status),
             'location': self.location,
+            'location_code': self.location_code,
+            'location_aisle': self.location_aisle,
+            'location_shelf': self.location_shelf,
             'warehouse_id': self.warehouse_id,
             'warehouse_name': self.warehouse.name if self.warehouse else None,
             'tenant_id': self.tenant_id,
@@ -385,6 +441,18 @@ class Stock(db.Model):
             'optimal_stock': self.optimal_stock,
             'stock_level': self.stock_level(),
             'unit_cost': self.unit_cost,
+            'purchase_price': self.effective_purchase_price(),
+            'sale_price': self.sale_price,
+            'average_cost': self.average_cost,
+            'margin_unit': self.margin_unit(),
+            'margin_percent': self.margin_percent(),
+            'potential_profit': self.potential_profit(),
+            'public_token': self.public_token,
+            'qr_public_enabled': self.qr_public_enabled,
+            'manual_pdf_url': self.manual_pdf_url,
+            'menu_item_name': self.menu_item_name,
+            'is_menu_ingredient': self.is_menu_ingredient,
+            'allergens': self.allergen_labels(),
             'expiration_alert': self.expiration_alert(),
             'days_until_expiration': self.days_until_expiration(),
             'warranty_days_remaining': self.warranty_days_remaining(),
@@ -681,6 +749,147 @@ class PurchaseOrderLine(db.Model):
             'unit_cost': self.unit_cost,
             'barcode': self.barcode,
             'line_total': (self.unit_cost or 0) * self.quantity_ordered,
+        }
+
+
+class AlertChannelEnum(enum.Enum):
+    email = 'email'
+    telegram = 'telegram'
+    discord = 'discord'
+
+
+class AlertEventEnum(enum.Enum):
+    low_stock = 'low_stock'
+    critical_stock = 'critical_stock'
+    expiring_soon = 'expiring_soon'
+    order_approved = 'order_approved'
+
+
+class AlertConfig(db.Model):
+    """Configuración de alertas por tenant y canal."""
+    __tablename__ = 'alert_configs'
+    id = db.Column(db.Integer, primary_key=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False, index=True)
+    channel = db.Column(db.Enum(AlertChannelEnum), nullable=False)
+    event_type = db.Column(db.Enum(AlertEventEnum), nullable=False)
+    enabled = db.Column(db.Boolean, default=True, nullable=False)
+    destination = db.Column(db.String(500), nullable=True)  # email, chat_id, webhook url
+    extra_config = db.Column(db.Text, nullable=True)  # JSON: bot_token, etc.
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index('idx_alert_tenant_channel_event', 'tenant_id', 'channel', 'event_type', unique=True),
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'tenant_id': self.tenant_id,
+            'channel': self.channel.value,
+            'event_type': self.event_type.value,
+            'enabled': self.enabled,
+            'destination': self.destination,
+            'extra_config': self.extra_config,
+        }
+
+
+class CyclicInventorySchedule(db.Model):
+    """Programación de inventarios cíclicos (ej. lunes=monitores)."""
+    __tablename__ = 'cyclic_inventory_schedules'
+    id = db.Column(db.Integer, primary_key=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False, index=True)
+    name = db.Column(db.String(120), nullable=False)
+    weekday = db.Column(db.Integer, nullable=False)  # 0=lunes .. 6=domingo
+    device_type = db.Column(db.String(50), nullable=True)
+    warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouses.id'), nullable=True)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'tenant_id': self.tenant_id,
+            'name': self.name,
+            'weekday': self.weekday,
+            'device_type': self.device_type,
+            'warehouse_id': self.warehouse_id,
+            'is_active': self.is_active,
+        }
+
+
+class CyclicInventoryTask(db.Model):
+    __tablename__ = 'cyclic_inventory_tasks'
+    id = db.Column(db.Integer, primary_key=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False, index=True)
+    schedule_id = db.Column(db.Integer, db.ForeignKey('cyclic_inventory_schedules.id'), nullable=True)
+    title = db.Column(db.String(200), nullable=False)
+    status = db.Column(db.String(20), default='pendiente', nullable=False)  # pendiente|en_progreso|completada
+    due_date = db.Column(db.Date, nullable=False)
+    assigned_to = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    completed_at = db.Column(db.DateTime, nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    schedule = db.relationship('CyclicInventorySchedule', foreign_keys=[schedule_id])
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'tenant_id': self.tenant_id,
+            'schedule_id': self.schedule_id,
+            'title': self.title,
+            'status': self.status,
+            'due_date': self.due_date.isoformat() if self.due_date else None,
+            'assigned_to': self.assigned_to,
+            'completed_at': self.completed_at.isoformat() if self.completed_at else None,
+            'notes': self.notes,
+        }
+
+
+class ApiKey(db.Model):
+    __tablename__ = 'api_keys'
+    id = db.Column(db.Integer, primary_key=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False, index=True)
+    name = db.Column(db.String(120), nullable=False)
+    key_prefix = db.Column(db.String(12), nullable=False)
+    key_hash = db.Column(db.String(128), nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    scopes = db.Column(db.String(200), default='read,write', nullable=False)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    last_used_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'tenant_id': self.tenant_id,
+            'name': self.name,
+            'key_prefix': self.key_prefix,
+            'is_active': self.is_active,
+            'scopes': self.scopes,
+            'last_used_at': self.last_used_at.isoformat() if self.last_used_at else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class Webhook(db.Model):
+    __tablename__ = 'webhooks'
+    id = db.Column(db.Integer, primary_key=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False, index=True)
+    url = db.Column(db.String(500), nullable=False)
+    secret = db.Column(db.String(64), nullable=True)
+    events = db.Column(db.String(300), default='stock.updated,order.approved', nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'tenant_id': self.tenant_id,
+            'url': self.url,
+            'events': self.events,
+            'is_active': self.is_active,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
         }
 
 

@@ -103,11 +103,23 @@ class DashboardService:
             suppliers_q = suppliers_q.filter(Supplier.tenant_id == tid)
         suppliers_count = suppliers_q.count()
 
+        # Costes y márgenes
+        stocks = active.all()
+        total_potential_profit = sum(s.potential_profit() or 0 for s in stocks)
+        margins = [s.margin_percent() for s in stocks if s.margin_percent() is not None]
+        avg_margin_percent = round(sum(margins) / len(margins), 1) if margins else None
+        inventory_at_sale = sum(
+            (s.sale_price or 0) * (s.cantidad or 0) for s in stocks if s.sale_price
+        )
+
         return {
             'kpis': {
                 'total_items': total_items,
                 'total_units': int(total_units),
                 'inventory_value': round(float(inventory_value), 2),
+                'inventory_at_sale_value': round(float(inventory_at_sale), 2),
+                'potential_profit': round(float(total_potential_profit), 2),
+                'average_margin_percent': avg_margin_percent,
                 'suppliers_count': suppliers_count,
                 'low_stock_count': len(low_stock),
                 'critical_stock_count': len(critical_stock),

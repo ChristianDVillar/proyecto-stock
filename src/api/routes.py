@@ -87,6 +87,32 @@ def create_stock():
         msg = str(e) or type(e).__name__
         return jsonify({'error': 'Error al crear el stock', 'message': msg}), 500
 
+@api.route('/stock/quick-scan', methods=['POST'])
+@jwt_required()
+def quick_scan():
+    """Inventario rápido móvil: escaneo sin formulario completo."""
+    try:
+        from .tenant_utils import get_current_tenant_id, get_current_user
+        user = get_current_user()
+        tid = get_current_tenant_id()
+        data = request.get_json() or {}
+        barcode = (data.get('barcode') or '').strip()
+        if not barcode:
+            return jsonify({'error': 'barcode es obligatorio'}), 400
+        mode = data.get('mode', 'lookup')
+        quantity = int(data.get('quantity', 1))
+        stock, err = StockService.quick_scan(
+            barcode, int(get_jwt_identity()), tid, mode=mode, quantity=quantity
+        )
+        if err:
+            return jsonify({'error': err['error']}), err.get('status', 404)
+        db.session.commit()
+        return jsonify({'stock': stock.to_summary_dict(), 'mode': mode}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
 @api.route('/stock/<barcode>', methods=['GET'])
 @jwt_required()
 def get_stock(barcode):
@@ -194,11 +220,14 @@ def update_stock(stock_id):
             return jsonify({'error': 'Stock no encontrado'}), 404
         data = request.get_json() or {}
         updatable = (
-            'minimum_stock', 'optimal_stock', 'unit_cost', 'supplier_id',
+            'minimum_stock', 'optimal_stock', 'unit_cost', 'purchase_price', 'sale_price',
+            'average_cost', 'supplier_id',
             'expiration_date', 'batch_number', 'serial_number', 'mac_address',
-            'hostname', 'assigned_user_id', 'location', 'descripcion',
+            'hostname', 'assigned_user_id', 'location', 'location_code', 'location_aisle',
+            'location_shelf', 'descripcion',
             'contains_gluten', 'contains_milk', 'contains_nuts', 'contains_soy',
-            'warranty_expiry', 'purchase_date',
+            'warranty_expiry', 'purchase_date', 'qr_public_enabled', 'manual_pdf_url',
+            'menu_item_name', 'is_menu_ingredient',
         )
         for key in updatable:
             if key not in data:
@@ -219,7 +248,24 @@ def update_stock(stock_id):
                     val = float(val)
                 except (TypeError, ValueError):
                     continue
+            if key in ('purchase_price', 'sale_price', 'average_cost') and val is not None:
+                try:
+                    val = float(val)
+                except (TypeError, ValueError):
+                    continue
+            if key in ('qr_public_enabled', 'is_menu_ingredient'):
+                val = bool(val)
             setattr(stock, key, val)
+        if data.get('qr_public_enabled'):
+            stock.ensure_public_token()
+        if 'location_code' in data and data['location_code']:
+            parts = str(data['location_code']).upper().split('-')
+            if len(parts) >= 2:
+                stock.location_aisle = parts[0]
+            if len(parts) >= 3:
+                stock.location_shelf = parts[1]
+        if 'purchase_price' in data and data['purchase_price'] is not None:
+            stock.unit_cost = stock.purchase_price
         if 'assigned_user_id' in data and data['assigned_user_id']:
             evt = AssetEvent(
                 stock_id=stock.id,

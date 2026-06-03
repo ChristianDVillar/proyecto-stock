@@ -2,80 +2,151 @@
 
 Funcionalidades implementadas y planificadas para convertir el proyecto en producto vendible.
 
+**Estado actual:** ~75–85% MVP comercial · Fases 1–2 + MVP ampliado implementados · CI activo · 33+ tests backend.
+
+---
+
+## Evaluación comercial
+
+El proyecto ya no es un simple sistema de stock: es una **plataforma SaaS de inventario y activos** con multiempresa, multi-almacén, compras, trazabilidad, firma digital y PWA.
+
+| Área | Estado |
+|------|--------|
+| Core inventario + auditoría | ✅ |
+| SaaS multi-tenant | ✅ |
+| Comercial (OC, proveedores, márgenes) | ✅ |
+| Operaciones (almacenes, transferencias, ubicaciones) | ✅ |
+| Movilidad (PWA, escaneo rápido) | ✅ |
+| Alertas (Email / Telegram / Discord) | ✅ |
+| Monetización (planes + límites) | ✅ base |
+| Integraciones (API keys + webhooks) | ✅ |
+| Portal cliente | ✅ base |
+| QR público + carta alérgenos | ✅ base |
+
+---
+
 ## Fase 1 — Implementada
 
-| Funcionalidad | Backend | Frontend |
-|---------------|---------|----------|
-| Vencimientos (`expiration_date`, alertas 90/30/7/vencido) | ✅ | ✅ Dashboard |
-| Lotes (`batch_number`, trazabilidad API) | ✅ | ✅ Formulario |
-| Proveedores (CRUD) | ✅ `/api/suppliers` | ✅ `/proveedores` |
-| Stock mínimo / óptimo + indicadores 🟢🟡🔴 | ✅ | ✅ Consultar + Dashboard |
-| Órdenes de compra (generar, aprobar, recibir) | ✅ `/api/purchase-orders` | ✅ `/ordenes-compra` |
-| Dashboard ejecutivo (KPIs, categorías, movimientos) | ✅ `/api/dashboard/executive` | ✅ `/dashboard` |
-| Alérgenos (gluten, lácteos, frutos secos, soja) | ✅ | ✅ Formulario |
-| Activos IT (SN, MAC, hostname, asignado) | ✅ | ✅ Formulario |
-| Garantías + alertas 30 días | ✅ | ✅ Dashboard |
-| Historial activo (eventos + movimientos + mant.) | ✅ `/api/stock/<id>/asset-history` | ✅ Modal en Consultar |
+Vencimientos, lotes, proveedores, stock mín/óptimo, órdenes de compra, dashboard, alérgenos, activos IT, garantías, historial activo.
 
 **Migración:** `003_commercial_features.py`
 
+---
+
 ## Fase 2 — Implementada
 
-| Funcionalidad | Backend | Frontend |
-|---------------|---------|----------|
-| Multiempresa (SaaS): `tenant_id` en entidades clave | ✅ | ✅ JWT + AuthStore |
-| Multi-almacén + transferencias | ✅ `/api/warehouses`, `/api/transfers` | ✅ `/almacenes`, `/transferencias` |
-| Firma digital en solicitudes (canvas base64) | ✅ `POST /api/solicitudes/<id>/sign` | ✅ SignaturePad en `/solicitar` |
-| PWA offline básica (manifest + service worker) | — | ✅ |
-| Tenants API (admin) | ✅ `/api/tenants` | — |
+Multi-tenant, multi-almacén, transferencias, firma digital, PWA, tenants API.
 
-**Migración:** `004_saas_warehouse.py` — ejecutar:
+**Migración:** `004_saas_warehouse.py`
+
+---
+
+## Fase MVP comercial — Implementada
+
+| # | Funcionalidad | Backend | Frontend |
+|---|---------------|---------|----------|
+| 1 | **Costes y márgenes** (`purchase_price`, `sale_price`, `average_cost`) | ✅ Dashboard KPIs | ✅ Dashboard + formulario |
+| 2 | **Inventario rápido móvil** | ✅ `POST /api/stock/quick-scan` | ✅ `/escaneo` |
+| 3 | **Ubicaciones físicas** (`location_code` A-03-02) | ✅ | ✅ Formulario |
+| 4 | **Inventarios cíclicos** | ✅ `/api/cyclic-inventory/*` | ✅ `/inventario-ciclico` |
+| 5 | **Alertas automáticas** Email/Telegram/Discord | ✅ `/api/alerts` | ✅ `/alertas` |
+| 6 | **QR público de producto** | ✅ `/api/public/product/<token>` | ✅ `/p/:token` |
+| 7 | **Alérgenos → carta QR** | ✅ `/api/public/menu/<slug>` | — |
+| 8 | **Portal cliente** | ✅ `/api/portal/*` | ✅ `/portal` |
+| 9 | **Facturación SaaS** (Starter 19€ / Business 49€ / Enterprise 99€) | ✅ `/api/billing/*` | ✅ `/planes` |
+| 10 | **API pública + webhooks** | ✅ `/api/v1/*`, `/api/integrations/*` | ✅ `/integraciones` |
+
+**Migración:** `005_mvp_commercial.py`
+
+### Planes SaaS
+
+| Plan | Precio | Usuarios | Almacenes | OC/mes |
+|------|--------|----------|-----------|--------|
+| Starter | 19€ | 3 | 1 | 50 |
+| Pro | 29€ | 5 | 2 | 100 |
+| Business | 49€ | 10 | 3 | 200 |
+| Enterprise | 99€ | ∞ | ∞ | ∞ |
+
+---
+
+## Pendiente (próximas iteraciones)
+
+- Pasarela de pago real (Stripe) vinculada a planes
+- UI admin de tenants multi-empresa
+- App Capacitor nativa
+- Cola offline con sync de movimientos
+- Firma en entregas exportada a PDF
+- OCR facturas · Predicción IA · ERP
+
+---
+
+## Migraciones
 
 ```powershell
 $env:PYTHONPATH = "src"
 $env:FLASK_APP = "src/run.py"
 python -m flask db upgrade
+python scripts/init_db.py
 ```
 
-### Pendiente Fase 2 (futuro)
+---
 
-- App móvil (Capacitor): escaneo, entradas/salidas
-- Cola offline de movimientos con sincronización
-- Firma digital en entregas (PDF)
-- Integración carta digital / QR (Dakinis)
+## Rutas frontend
 
-## Fase 3 — Planificada
+| Ruta | Pantalla |
+|------|----------|
+| `/dashboard` | KPIs + márgenes |
+| `/escaneo` | Inventario rápido (PWA/móvil) |
+| `/inventario-ciclico` | Conteos programados |
+| `/alertas` | Email / Telegram / Discord |
+| `/planes` | Suscripción SaaS |
+| `/integraciones` | API keys + webhooks |
+| `/portal` | Portal cliente (usuarios) |
+| `/p/:token` | Ficha pública QR (sin login) |
 
-- Predicción de stock (ML)
-- OCR de facturas
-- Integración ERP
-- Notificaciones email/push
+---
 
-## Endpoints (referencia)
+## Endpoints nuevos (MVP)
 
 ```
-GET  /api/dashboard/executive
-GET  /api/dashboard/expiration-alerts
-GET  /api/dashboard/low-stock
-GET  /api/dashboard/batches/<batch>/trace
+POST   /api/stock/quick-scan
 
-GET|POST|PUT|DELETE  /api/suppliers
-GET  /api/suppliers/<id>
+GET|PUT  /api/alerts
+POST     /api/alerts/check
+POST     /api/alerts/test
 
-GET|POST  /api/purchase-orders
-POST     /api/purchase-orders/generate-low-stock
-POST     /api/purchase-orders/<id>/approve
-POST     /api/purchase-orders/<id>/receive
+GET|POST /api/cyclic-inventory/schedules
+GET      /api/cyclic-inventory/tasks
+POST     /api/cyclic-inventory/tasks/generate
+POST     /api/cyclic-inventory/tasks/<id>/complete
 
-GET|POST  /api/warehouses
-GET      /api/warehouses/<id>/stock
+GET      /api/public/product/<token>
+GET      /api/public/menu/<tenant_slug>
 
-GET|POST  /api/transfers
-POST     /api/transfers/<id>/complete
+GET      /api/portal/summary|stock|solicitudes|orders
 
-GET|POST  /api/tenants
+GET      /api/billing/plans|usage
+PATCH    /api/billing/plan
 
-PATCH    /api/stock/<id>
-GET      /api/stock/<id>/asset-history
-POST     /api/solicitudes/<id>/sign
+GET|POST /api/integrations/api-keys
+GET|POST /api/integrations/webhooks
+
+GET      /api/v1/stock
+POST     /api/v1/stock/<barcode>/movement
 ```
+
+### Variables de entorno (alertas)
+
+```
+SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM
+TELEGRAM_BOT_TOKEN
+DISCORD_WEBHOOK_URL
+```
+
+---
+
+## Documentación
+
+- [ESTRUCTURA_Y_FUNCIONAMIENTO_ACTUAL.md](ESTRUCTURA_Y_FUNCIONAMIENTO_ACTUAL.md)
+- [FUNCIONAMIENTO.md](FUNCIONAMIENTO.md)
+- [README.md](README.md)

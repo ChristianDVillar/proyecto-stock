@@ -11,6 +11,13 @@ import Suppliers from './js/components/Suppliers';
 import PurchaseOrders from './js/components/PurchaseOrders';
 import Warehouses from './js/components/Warehouses';
 import Transfers from './js/components/Transfers';
+import QuickScan from './js/components/QuickScan';
+import AlertSettings from './js/components/AlertSettings';
+import CyclicInventory from './js/components/CyclicInventory';
+import BillingPlans from './js/components/BillingPlans';
+import Integrations from './js/components/Integrations';
+import Portal from './js/components/Portal';
+import PublicProduct from './js/components/PublicProduct';
 import Login from './js/components/Login';
 import Footer from './js/components/Footer';
 import ProtectedRoute from './js/components/ProtectedRoute';
@@ -75,6 +82,7 @@ function App() {
         {isLoggedIn && <Header isAdmin={isAdmin} />}
         <main className="App-main">
           <Routes>
+            <Route path="/p/:token" element={<PublicProduct />} />
             <Route path="/login" element={isLoggedIn ? <Navigate to="/" replace /> : <Login />} />
             <Route
               path="/"
@@ -140,6 +148,12 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="/escaneo" element={<ProtectedRoute adminOnly><QuickScan /></ProtectedRoute>} />
+            <Route path="/alertas" element={<ProtectedRoute adminOnly><AlertSettings /></ProtectedRoute>} />
+            <Route path="/inventario-ciclico" element={<ProtectedRoute adminOnly><CyclicInventory /></ProtectedRoute>} />
+            <Route path="/planes" element={<ProtectedRoute adminOnly><BillingPlans /></ProtectedRoute>} />
+            <Route path="/integraciones" element={<ProtectedRoute adminOnly><Integrations /></ProtectedRoute>} />
+            <Route path="/portal" element={<ProtectedRoute><Portal /></ProtectedRoute>} />
             <Route
               path="/admin"
               element={

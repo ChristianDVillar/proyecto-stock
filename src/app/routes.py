@@ -16,6 +16,13 @@ from api.dashboard import dashboard
 from api.tenants import tenants
 from api.warehouses import warehouses
 from api.transfers import transfers
+from api.alerts import alerts
+from api.cyclic_inventory import cyclic_inventory
+from api.public import public
+from api.billing import billing
+from api.integrations import integrations
+from api.v1 import v1
+from api.portal import portal
 
 
 def register_blueprints(app, limiter):
@@ -31,6 +38,13 @@ def register_blueprints(app, limiter):
     app.register_blueprint(tenants, url_prefix='/api/tenants')
     app.register_blueprint(warehouses, url_prefix='/api/warehouses')
     app.register_blueprint(transfers, url_prefix='/api/transfers')
+    app.register_blueprint(alerts, url_prefix='/api/alerts')
+    app.register_blueprint(cyclic_inventory, url_prefix='/api/cyclic-inventory')
+    app.register_blueprint(public, url_prefix='/api/public')
+    app.register_blueprint(billing, url_prefix='/api/billing')
+    app.register_blueprint(integrations, url_prefix='/api/integrations')
+    app.register_blueprint(v1, url_prefix='/api/v1')
+    app.register_blueprint(portal, url_prefix='/api/portal')
     
     # Apply rate limiting
     limiter.limit("5 per minute")(auth)

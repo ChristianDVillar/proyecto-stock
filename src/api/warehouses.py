@@ -25,6 +25,10 @@ def create_warehouse():
     tid = get_current_tenant_id()
     if not tid:
         return jsonify({'error': 'Sin tenant asignado'}), 400
+    from .services.billing_service import BillingService
+    ok, msg = BillingService.check_limit(tid, 'warehouses')
+    if not ok:
+        return jsonify({'error': msg}), 403
     data = request.get_json() or {}
     code = (data.get('code') or '').strip().upper()
     name = (data.get('name') or '').strip()
